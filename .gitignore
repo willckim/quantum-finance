@@ -1,0 +1,43 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Secrets / credentials (never commit) ---
+.env
+.env.*
+*.pem
+*.key
+credentials.*
+secrets.*
+
+# --- Editors / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- OS / sync cruft ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Tooling / local config (not part of the public portfolio) ---
+.claude/
+
+# --- Local reference notes (contains unrelated project context) ---
+Quantum_Project_Reference.md

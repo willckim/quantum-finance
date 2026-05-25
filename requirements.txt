@@ -1,0 +1,18 @@
+# Quantum-finance learning portfolio -- dependencies
+# Verified against the environment that produced the committed outputs:
+# Python 3.14.3 on Windows 11.
+
+# Core quantum stack
+qiskit==2.3.1
+qiskit-aer==0.17.2
+
+# Numerical / plotting
+numpy==2.4.4
+scipy==1.17.1
+matplotlib==3.10.9
+
+# Required only by 03_finance/quantum_forecaster.py (variational quantum regression).
+# Left unpinned: this script was developed under an earlier environment and its
+# exact pins are not re-verified on Python 3.14. Install the latest compatible build.
+scikit-learn
+qiskit-machine-learning
