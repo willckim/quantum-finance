@@ -25,7 +25,35 @@ I am an accountant on the CPA path. In 2026 I started learning quantum computing
 ### `02_algorithms/`
 
 - **`grover_search.py`** — Grover's search algorithm, which finds a marked item in an unsorted space in roughly the square root of the classical number of steps.
-- **`quantum_error_correction.py`**: Builds quantum error correction up in six stages: a bare noisy qubit, the 3-qubit bit-flip and phase-flip codes, Shor's 9-qubit code, and a distance-3 rotated surface code. Each is hand-built with ancilla syndrome measurement and mid-circuit correction. It verifies that syndrome checks locate errors without collapsing the stored state, checks every simulated code against an exact enumeration of all error patterns, and plots logical vs physical error rate, including where the distance-3 and distance-5 surface codes cross (the threshold, under code-capacity noise). Output: `error_correction_threshold.png`.
+#### Quantum error correction: `02_algorithms/error_correction/`
+
+**What it demonstrates.** How a quantum computer can protect fragile qubits without ever copying them or looking at the information they hold. The project builds error correction up in six stages, from one noisy qubit to the surface code the industry is scaling today. Every encoder, syndrome measurement and decoder is hand-built in Qiskit, and every simulated result is checked against exact math (58 self-checks, printed at the end of each run).
+
+**Start here.** Open [`run_all.py`](02_algorithms/error_correction/run_all.py) first. Its opening comment explains the five ideas the project is about (no-cloning, physical vs logical qubits, syndrome measurement, threshold, overhead) and lists the modules in reading order. Then read the parts in order:
+
+| Part | File | What it shows |
+|------|------|---------------|
+| 1 | `bare_qubit.py` | An unprotected qubit is wrong with probability p. |
+| 2 | `repetition_code.py` | The 3-qubit code finds a bit flip without collapsing the stored state, verified with state fidelity. The conceptual heart of the project. |
+| 3 | `phase_flip_code.py` | The bit-flip code is blind to phase errors; its Hadamard-rotated twin catches them. |
+| 4 | `shor_code.py` | Shor's 9-qubit code corrects X, Y and Z errors on any qubit, including a continuous rotation. |
+| 5 | `surface_code.py` | A distance-3 rotated surface code, with its syndromes drawn on the 2D lattice. |
+| 6 | `threshold_sweep.py` | The threshold chart and the physical-qubit overhead arithmetic. |
+| shared | `noise_and_tools.py`, `pauli_frame.py` | Settings, noise channels and helpers, plus the exact classical model the circuits are graded against. |
+
+**What the threshold chart shows.** [`error_correction_threshold.png`](02_algorithms/error_correction/error_correction_threshold.png) plots logical error rate against physical error rate p. Panel A asks whether one encoded qubit beats a bare one: a code helps wherever its curve sits below the diagonal, and the crossing is that code's break-even point. Panel B asks whether a *bigger* code helps: below the point where the distance-3 and distance-5 surface-code curves cross, the larger code is more reliable. That crossing is the threshold, and operating below it is what lets error correction scale.
+
+![Logical vs physical error rate for the 3-qubit, Shor and surface codes](02_algorithms/error_correction/error_correction_threshold.png)
+
+**Read every number with its noise model.** The simulation uses *code-capacity* noise: errors strike the data qubits, but the syndrome measurements that detect them are perfect. Real hardware faces *circuit-level* noise, where the ancilla qubits, gates and measurements doing the checking fail too, and that pulls every number down.
+
+| Result | Code-capacity noise (this simulation) | Circuit-level noise (real hardware) |
+|--------|---------------------------------------|-------------------------------------|
+| 3-qubit code break-even | 50% (bit-flip noise only) | Lower once the checks can fail; not simulated here |
+| Shor 9-qubit / surface d=3 break-even | 8.5% / 8.3% (depolarizing noise) | Lower; not simulated here |
+| Surface code threshold | About 13.3% (d=3 vs d=5 crossing) | About 1% (Wang, Fowler & Hollenberg 2011; Fowler et al. 2012) |
+
+The 13.3% figure is a property of the idealized model, not a claim about real devices. The hardware-relevant surface-code threshold is about 1%.
 
 ### `03_finance/`
 
@@ -42,9 +70,12 @@ pip install -r requirements.txt
 # 2. Run any program directly
 python 01_basics/coin_flip.py
 python 03_finance/quantum_monte_carlo.py
+
+# 3. Run the whole error-correction walkthrough (about 35 seconds)
+python 02_algorithms/error_correction/run_all.py
 ```
 
-The two finance scripts that generate charts write their `.png` next to themselves in `03_finance/`. They use a non-interactive matplotlib backend, so they save the file without opening a window.
+The finance scripts that generate charts write their `.png` next to themselves in `03_finance/`, and `run_all.py` writes `error_correction_threshold.png` next to itself. All of them use a non-interactive matplotlib backend, so they save the file without opening a window.
 
 Note: `quantum_forecaster.py` additionally requires `scikit-learn` and `qiskit-machine-learning` (included in `requirements.txt`). It was developed under an earlier Python/Qiskit environment; the other scripts run on the environment below as-is.
 
