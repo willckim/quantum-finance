@@ -224,7 +224,8 @@ def part4_shor_code() -> tuple[Sweep, Callable[[float], float], list[Check]]:
     print("    exact = all 4^9 = 262,144 error patterns enumerated and decoded.\n")
     print_error_rate_sweep([("Shor-9", sweep, exact)])
     p_star = break_even_point(exact)
-    print(f"\n  KEY RESULT: break-even at p* = {percent(p_star)} under depolarizing noise.")
+    print(f"\n  KEY RESULT: break-even at p* = {percent(p_star)} under code-capacity depolarizing")
+    print("  noise (perfect syndrome checks; noisy checks on real hardware would lower it).")
     print("  Below it, 9 physical qubits make a better qubit than 1. The first code ever to do")
     print("  that against every kind of single-qubit error, not just one kind.")
     return sweep, exact, checks

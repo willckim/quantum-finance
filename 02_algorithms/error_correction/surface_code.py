@@ -32,7 +32,8 @@ from pauli_frame import (CssCode, LookupDecoder, break_even_point, build_decoder
 #   made it the default roadmap:
 #     1. LOCAL CONNECTIVITY. Nearest-neighbour couplings only; it fits a planar chip.
 #     2. HIGH THRESHOLD. About 1% under realistic circuit-level noise, the most forgiving
-#        of the practical codes, and today's best hardware is already below it.
+#        of the practical codes, and today's best hardware is already below it. (Part 6
+#        measures about 13%, but only because this script's checks never fail.)
 #     3. SCALABILITY. Distance d is just the grid size. Growing d changes nothing about
 #        any individual check, so the same hardware cell tiles out to any size.
 #   Google's Willow chip (Nature, December 2024; arXiv:2408.13687) ran distance 3, 5 and 7 surface

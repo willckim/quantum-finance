@@ -38,7 +38,8 @@ from pauli_frame import break_even_point
 #   getting hardware below that line and then as far below it as possible.
 #
 # WHY THESE THRESHOLDS ARE HIGHER THAN THE "~1%" YOU READ ABOUT
-#   This chart is code-capacity noise (perfect checks). Real syndrome extraction uses
+#   This chart is code-capacity noise (perfect checks), which is why its surface-code
+#   threshold lands near 13%. Real syndrome extraction uses
 #   noisy ancillas, CNOTs and measurements, and hardware repeats the checks every cycle
 #   to catch lying syndromes. Under that circuit-level noise the surface code threshold is
 #   about 1% (Wang, Fowler & Hollenberg 2011 report just over 1%; Fowler et al. 2012 report
@@ -60,7 +61,8 @@ from pauli_frame import break_even_point
 # THE OVERHEAD, WHICH IS THE REAL ENGINEERING PROBLEM
 #   A distance-d rotated surface code uses d^2 data + (d^2 - 1) measure qubits. Useful
 #   algorithms (chemistry, factoring) need logical error rates near 1e-12 per operation.
-#   With the usual rule of thumb P_L ~ 0.1 * (p / 1%)^((d+1)/2), hardware at p = 0.1%
+#   With the usual rule of thumb P_L ~ 0.1 * (p / 1%)^((d+1)/2), where 1% is the
+#   circuit-level threshold (not this script's 13% code-capacity figure), hardware at p = 0.1%
 #   needs d = 21, which is 881 physical qubits for EVERY logical qubit. Improving the
 #   physical error rate from 0.2% to 0.1% cuts that from 1,921 to 881: qubit quality
 #   matters as much as qubit count. It is also why IBM's roadmap moved to qLDPC "bivariate
@@ -142,11 +144,11 @@ def draw_break_even_panel(ax, curves: dict[str, Callable[[float], float]],
                 zorder=5, clip_on=False)
     if break_even["surface3"] is not None:
         ax.annotate(f"Shor-9 breaks even at {percent(break_even['shor'], 1)}\n"
-                    f"surface d=3 at {percent(break_even['surface3'], 1)}",
+                    f"surface d=3 at {percent(break_even['surface3'], 1)}\n(code-capacity noise)",
                     xy=(break_even["surface3"], break_even["surface3"]), xytext=(0.02, 0.40),
                     fontsize=9, color=INK,
                     arrowprops={"arrowstyle": "-", "color": INK_MUTED, "lw": 0.8})
-    ax.annotate("3-qubit code (bit flips only)\nbreaks even at exactly 50%",
+    ax.annotate("3-qubit code (bit flips only)\nbreaks even at exactly 50%\n(code-capacity noise)",
                 xy=(0.5, 0.5), xytext=(0.29, 0.10), fontsize=9, color=INK,
                 arrowprops={"arrowstyle": "-", "color": INK_MUTED, "lw": 0.8})
     ax.set_xlim(0, 0.5)
@@ -168,7 +170,8 @@ def draw_threshold_panel(ax, exact3: Callable[[float], float], d5_rates: Sequenc
     ax.text(ps[1], rates[0] * 0.45, r"d=5: $\propto p^3$", fontsize=9, color=INK_SECONDARY)
     if threshold is not None:
         ax.axvline(threshold, color=INK_MUTED, lw=1)
-        ax.text(threshold * 0.92, 2.5e-4, f"threshold\n~{threshold:.1%}", ha="right",
+        label = f"threshold ~{threshold:.1%}\n(code-capacity noise;\n~1% on real hardware)"
+        ax.text(threshold * 0.92, 2.5e-4, label, ha="right",
                 fontsize=9, color=INK)
         ax.text(0.0105, 0.3, "below threshold:\nthe bigger code wins", fontsize=9, color=INK_MUTED)
         ax.text(threshold * 1.08, 2.5e-4, "above:\nbigger\nis worse", fontsize=9, color=INK_MUTED)
@@ -248,8 +251,9 @@ def part6_threshold_chart(curves: dict[str, Callable[[float], float]], sweeps: d
         print(f"  {name:<36} {percent(break_even[key]):>8}")
     print(f"  {'Surface d=5, depolarizing (sampled)':<36} {percent(analysis.d5_break_even, 1):>8}")
     gain = f"{d3_on_grid[0] / d5_rates[0]:.0f}x" if d5_rates[0] > 0 else "immeasurably"
-    print("\nThreshold estimate, where the d=3 and d=5 curves cross: "
+    print("\nThreshold estimate under code-capacity noise, where the d=3 and d=5 curves cross: "
           f"{percent(analysis.threshold, 1, 'not found')}")
+    print("  Under circuit-level noise (noisy checks, as on real hardware) it is about 1%.")
     print(f"  At p = {P_SWEEP_LOG[0]:.0%}: d=3 fails {d3_on_grid[0]:.2e}, d=5 fails "
           f"{d5_rates[0]:.2e}: {gain} better for 32 more qubits.")
     print("  A two-size crossing is a finite-size estimate. For comparison, the asymptotic")

@@ -44,7 +44,10 @@ THE FIVE IDEAS THIS SCRIPT IS REALLY ABOUT
        as Google's Willow did by 2.4x; "pseudo-threshold" is the precise term here.)
      * THRESHOLD: the p below which making the code BIGGER makes it BETTER. Below it,
        error suppression compounds with size; above it, bigger codes are worse.
-   Part 6 plots both.
+   Part 6 plots both. Every number carries its noise model: this script measures a
+   surface-code threshold of about 13% under code-capacity noise (perfect checks), while
+   real hardware, under circuit-level noise, faces about 1%. The 3-qubit code's 50%
+   break-even is a code-capacity number too.
 
 5. OVERHEAD. Protection is bought with qubits. A surface code of distance d spends
    2d^2 - 1 physical qubits per logical qubit (17 at d=3, 97 at d=7, about 1,000 at the
@@ -59,8 +62,9 @@ the textbook model for comparing codes, because it isolates what the CODE can do
 
 Real hardware is harsher: the ancilla qubits, the CNOTs and the measurements that do the
 checking fail too. Under that CIRCUIT-LEVEL noise, the surface code threshold falls from
-about 10-15% (code capacity) to roughly 1%. The numbers printed here are therefore upper
-bounds on what these codes achieve in practice, and the script says so where it prints them.
+about 13% (code capacity, as measured here) to roughly 1%. The numbers printed here are
+therefore upper bounds on what these codes achieve in practice, and the script says so
+where it prints them.
 
 WHAT IS HAND-BUILT, WHAT IS SIMPLIFIED, AND WHAT WAS SUBSTITUTED
 ----------------------------------------------------------------

@@ -256,10 +256,12 @@ def part2_bit_flip_code() -> tuple[Sweep, Callable[[float], float], list[Check]]
     p_star = break_even_point(enumerated)
     checks.append(Check("Part 2: break-even of 3-qubit code is exactly p = 0.5",
                         p_star is not None and abs(p_star - 0.5) < 1e-9, f"p* = {p_star}"))
-    print(f"\n  KEY RESULT: break-even at p* = {percent(p_star, 1)}. Solving 3p^2 - 2p^3 = p gives")
+    print(f"\n  KEY RESULT: break-even at p* = {percent(p_star, 1)} under code-capacity")
+    print("  noise, where the parity checks never fail. Solving 3p^2 - 2p^3 = p gives")
     print("  p = 0, 1/2 or 1, so the encoded qubit beats the bare one at EVERY p below 50%")
     print("  and loses above it (at p = 0.6 the code fails 64.8% of the time vs 60.0% bare).")
     print("  Why so generous? This model gives the code PERFECT parity checks. On hardware the")
     print("  ancillas, CNOTs and measurements fail too, and a lying syndrome turns the 'fix'")
-    print("  into an error. That is what drags real thresholds down toward 1% (see Part 6).")
+    print("  into an error. Under that circuit-level noise the surface code's threshold is about")
+    print("  1%, versus about 13% in this script's code-capacity model (see Part 6).")
     return sweep, enumerated, checks
