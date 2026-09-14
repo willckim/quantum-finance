@@ -11,7 +11,7 @@ I am an accountant on the CPA path. In 2026 I started learning quantum computing
 | Folder | What it covers |
 |--------|----------------|
 | `01_basics/` | Foundational quantum programs: superposition, entanglement, teleportation, and the Bernstein-Vazirani algorithm. The "hello world" layer. |
-| `02_algorithms/` | A classic quantum algorithm implemented from the gates up. |
+| `02_algorithms/` | Core quantum algorithms implemented from the gates up: Grover search and quantum error correction. |
 | `03_finance/` | Three quantum-vs-classical finance applications, each producing a printed comparison and a chart. |
 
 ### `01_basics/`
@@ -25,6 +25,7 @@ I am an accountant on the CPA path. In 2026 I started learning quantum computing
 ### `02_algorithms/`
 
 - **`grover_search.py`** — Grover's search algorithm, which finds a marked item in an unsorted space in roughly the square root of the classical number of steps.
+- **`quantum_error_correction.py`**: Builds quantum error correction up in six stages: a bare noisy qubit, the 3-qubit bit-flip and phase-flip codes, Shor's 9-qubit code, and a distance-3 rotated surface code. Each is hand-built with ancilla syndrome measurement and mid-circuit correction. It verifies that syndrome checks locate errors without collapsing the stored state, checks every simulated code against an exact enumeration of all error patterns, and plots logical vs physical error rate, including where the distance-3 and distance-5 surface codes cross (the threshold, under code-capacity noise). Output: `error_correction_threshold.png`.
 
 ### `03_finance/`
 
