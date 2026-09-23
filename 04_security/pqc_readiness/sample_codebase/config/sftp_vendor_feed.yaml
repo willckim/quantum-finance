@@ -1,0 +1,11 @@
+# SampleCo Finance -- nightly vendor remittance feed over SFTP (synthetic)
+vendor_feed:
+  host: sftp.vendor.example.com
+  key_type: rsa
+  key_size: 1024
+  host_key_algorithms:
+    - ssh-dss
+    - ecdsa-sha2-nistp256
+  kex_algorithms:
+    - curve25519-sha256
+  file_checksum: sha1

@@ -1,0 +1,42 @@
+file,line,category,rule_id
+batch_jobs/LedgerExportSigner.java,5,quantum-vulnerable,QV-RSA
+batch_jobs/LedgerExportSigner.java,11,quantum-vulnerable,QV-DSA
+batch_jobs/LedgerExportSigner.java,12,quantum-vulnerable,QV-KEYSIZE
+batch_jobs/LedgerExportSigner.java,13,classically weak,CW-SHA1
+batch_jobs/LedgerExportSigner.java,14,quantum-vulnerable,QV-DH
+batch_jobs/LedgerExportSigner.java,15,quantum-vulnerable,QV-ECC
+batch_jobs/LedgerExportSigner.java,16,classically weak,CW-CIPHER
+batch_jobs/archive_encrypt.py,3,PQC-ready,PQ-HYBRID
+batch_jobs/archive_encrypt.py,4,PQC-ready,PQ-SYMMETRIC
+batch_jobs/archive_encrypt.py,8,PQC-ready,PQ-HYBRID
+batch_jobs/archive_encrypt.py,9,PQC-ready,PQ-KEM
+batch_jobs/archive_encrypt.py,10,PQC-ready,PQ-SIGNATURE
+batch_jobs/archive_encrypt.py,11,PQC-ready,PQ-SYMMETRIC
+batch_jobs/archive_encrypt.py,12,PQC-ready,PQ-HASH
+batch_jobs/archive_encrypt.py,13,PQC-ready,PQ-KEM
+batch_jobs/archive_encrypt.py,14,PQC-ready,PQ-SIGNATURE
+config/gateway_nginx.conf,6,classically weak,CW-TLS-LEGACY
+config/gateway_nginx.conf,7,classically weak,CW-SHA1
+config/gateway_nginx.conf,7,quantum-vulnerable,QV-DH
+config/gateway_nginx.conf,7,quantum-vulnerable,QV-ECC
+config/gateway_nginx.conf,7,quantum-vulnerable,QV-RSA
+config/gateway_nginx.conf,8,quantum-vulnerable,QV-ECC
+config/gateway_nginx.conf,9,quantum-vulnerable,QV-DH
+config/gateway_nginx.conf,10,classically weak,CW-TLS-LEGACY
+config/sftp_vendor_feed.yaml,4,quantum-vulnerable,QV-RSA
+config/sftp_vendor_feed.yaml,5,classically weak,CW-KEYSIZE
+config/sftp_vendor_feed.yaml,7,quantum-vulnerable,QV-DSA
+config/sftp_vendor_feed.yaml,8,quantum-vulnerable,QV-ECC
+config/sftp_vendor_feed.yaml,10,quantum-vulnerable,QV-ECC
+config/sftp_vendor_feed.yaml,11,classically weak,CW-SHA1
+infra/load_balancer.tf,5,classically weak,CW-TLS-LEGACY
+infra/load_balancer.tf,11,classically weak,CW-TLS-LEGACY
+payments_api/tls_client.py,6,quantum-vulnerable,QV-RSA
+payments_api/tls_client.py,13,classically weak,CW-TLS-LEGACY
+payments_api/tls_client.py,17,quantum-vulnerable,QV-KEYSIZE
+payments_api/tls_client.py,17,quantum-vulnerable,QV-RSA
+payments_api/tls_client.py,20,quantum-vulnerable,QV-ECC
+payments_api/tls_client.py,21,quantum-vulnerable,QV-ECC
+payments_api/webhook_verify.js,7,classically weak,CW-MD5
+payments_api/webhook_verify.js,11,quantum-vulnerable,QV-ECC
+payments_api/webhook_verify.js,11,quantum-vulnerable,QV-RSA

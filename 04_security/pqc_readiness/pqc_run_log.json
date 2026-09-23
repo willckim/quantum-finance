@@ -1,0 +1,110 @@
+{
+  "run_timestamp": "2026-09-23T09:59:32",
+  "automation": "pqc-readiness-toolkit",
+  "version": "2.0.0",
+  "environment": {
+    "python": "3.10.11",
+    "qiskit": "2.4.1",
+    "qiskit_aer": "0.17.2",
+    "numpy": "1.26.4",
+    "cryptography": "48.0.0"
+  },
+  "inputs": {
+    "config": "pqc_config.yaml",
+    "as_of_year": 2026,
+    "migration_years": 10,
+    "scenarios": {
+      "Pessimistic": {
+        "window": [
+          2030,
+          2032
+        ],
+        "planning_year": 2031
+      },
+      "Base": {
+        "window": [
+          2033,
+          2037
+        ],
+        "planning_year": 2035
+      },
+      "Optimistic": {
+        "window": [
+          2038,
+          2042
+        ],
+        "planning_year": 2040
+      }
+    },
+    "vendor_tracker": "sample_vendor_tracker.csv",
+    "scan_root": "sample_codebase"
+  },
+  "source": {
+    "files_read": 9,
+    "data_types": 8,
+    "vendors": 5
+  },
+  "processing": {
+    "findings_by_class": {
+      "quantum-vulnerable": 21,
+      "classically weak": 11,
+      "PQC-ready": 9
+    },
+    "exposed_by_scenario": {
+      "Pessimistic": 8,
+      "Base": 8,
+      "Optimistic": 5
+    },
+    "vendor_ratings": {
+      "Vendor A (fictional payroll SaaS)": "Medium",
+      "Vendor B (fictional cloud file storage)": "Low",
+      "Vendor C (fictional virtual data room)": "High",
+      "Vendor D (fictional tax software)": "High",
+      "Vendor E (fictional banking portal)": "Medium"
+    },
+    "kem_profiles": [
+      {
+        "name": "X25519 (classical)",
+        "public_key_bytes": 32,
+        "ciphertext_bytes": 32,
+        "shared_secret_bytes": 32,
+        "keygen_us": 77.3,
+        "encap_us": 146.9,
+        "decap_us": 84.85,
+        "quantum_safe": "no (Shor)"
+      },
+      {
+        "name": "ML-KEM-768 (FIPS 203)",
+        "public_key_bytes": 1184,
+        "ciphertext_bytes": 1088,
+        "shared_secret_bytes": 32,
+        "keygen_us": 444.65,
+        "encap_us": 135.15,
+        "decap_us": 144.4,
+        "quantum_safe": "yes"
+      },
+      {
+        "name": "Hybrid X25519MLKEM768",
+        "public_key_bytes": 1216,
+        "ciphertext_bytes": 1120,
+        "shared_secret_bytes": 64,
+        "keygen_us": 496.25,
+        "encap_us": 391.8,
+        "decap_us": 339.7,
+        "quantum_safe": "yes (either suffices)"
+      }
+    ]
+  },
+  "output": {
+    "report": "pqc_readiness_report.md",
+    "chart": "pqc_readiness_chart.png",
+    "questionnaire": "vendor_pqc_questionnaire.md"
+  },
+  "exceptions": [],
+  "self_checks": {
+    "passed": 56,
+    "ran": 56,
+    "failed": [],
+    "not_run": []
+  }
+}

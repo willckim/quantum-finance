@@ -1,0 +1,119 @@
+# =====================================================================================
+# PQC readiness toolkit: assessment inputs
+# =====================================================================================
+# Every number the Mosca analysis depends on lives in this file, so an organization can
+# replace the defaults with its own without touching the code. run_all.py validates the
+# file on load and stops with a clear message if anything is missing or inconsistent.
+#
+# THE DEFAULTS ARE GENERAL US FEDERAL RULES, NOT YOUR POLICY. Replace the retention
+# periods with your organization's records retention schedule before relying on results.
+#
+# Source keys (the values in each "sources" list) refer to the citation registry in
+# sources.py, where each key carries its full citation and URL. A data type based on
+# your own policy may use basis_type: policy with an empty sources list; the basis text
+# then serves as its citation.
+#
+# Point the toolkit at a different copy of this file with:  PQC_CONFIG=<path> py run_all.py
+# =====================================================================================
+
+# The year the assessment is performed. Fixed rather than read from the clock so that
+# rerunning later reproduces the same report; change it to re-date the analysis.
+as_of_year: 2026
+
+# Mosca's "y": years needed to move every system onto post-quantum cryptography.
+# Default 10: the UK NCSC's planning figure ("10 years is a sufficient period"), which
+# sits at the short end of NIST IR 8547's (draft) "10 to 20 years".
+migration:
+  years: 10
+  sources: [NCSC-TIMELINE, NIST-IR-8547]
+
+# Mosca's "x" for each data type: how long records must remain confidential.
+#   shelf_life_years  whole years, 0-100
+#   basis             the rule or assumption in plain words (printed in the report)
+#   basis_type        regulation  = a legal retention rule (cite it in sources)
+#                     assumption  = no rule applies; a stated working assumption
+#                     policy      = your organization's own retention schedule
+#   sources           citation keys from sources.py
+# A retention period is a LOWER bound on how long data must stay secret (a Social
+# Security number stays sensitive for life), so these defaults understate exposure.
+data_types:
+  - name: M&A documents
+    shelf_life_years: 18
+    basis: "IRC 197 15-year amortization of acquired goodwill + 3-year IRS limitations period on the final return"
+    basis_type: regulation
+    sources: [IRC-197, IRS-RECORDS]
+
+  - name: Audit workpapers
+    shelf_life_years: 7
+    basis: "SEC Rule 2-06 and PCAOB AS 1215: 7 years"
+    basis_type: regulation
+    sources: [SEC-2-06, PCAOB-1215]
+
+  - name: Tax records
+    shelf_life_years: 7
+    basis: "IRS: 7 years covers every filed-return case (3 general, 6 for >25% omission, 7 for bad debt)"
+    basis_type: regulation
+    sources: [IRS-RECORDS, IRC-6501]
+
+  - name: Employee PII
+    shelf_life_years: 6
+    basis: "ERISA 107: 6 years (employee medical records: employment + 30 years)"
+    basis_type: regulation
+    sources: [ERISA-107, OSHA-1910-1020]
+
+  - name: Customer payment data
+    shelf_life_years: 5
+    basis: "Bank Secrecy Act 31 CFR 1010.430: 5 years (PCI DSS sets no retention period)"
+    basis_type: regulation
+    sources: [BSA-1010-430, PCI-FAQ-RETENTION]
+
+  - name: Contracts
+    shelf_life_years: 4
+    # The Uniform Commercial Code's limitations period for sale-of-goods contracts. Other
+    # written contracts can carry longer state limitations periods, so replace this with
+    # your own schedule if your contracts are not mainly for goods.
+    basis: "UCC 2-725: 4-year limitations period for contracts for the sale of goods"
+    basis_type: regulation
+    sources: [UCC-2-725]
+
+  - name: Payroll records
+    shelf_life_years: 4
+    basis: "IRS employment tax records: 4 years (FLSA: 3)"
+    basis_type: regulation
+    sources: [IRS-EMPTAX, FLSA-516, FLSA-516-6]
+
+  - name: Bank credentials
+    shelf_life_years: 2
+    # No retention rule applies to a live credential. Two years is the upper end of the
+    # NIST cryptoperiod for authentication keys, used here as a working assumption.
+    basis: "ASSUMPTION, not a rule: NIST SP 800-57 authentication-key cryptoperiod of 1-2 years"
+    basis_type: assumption
+    sources: [NIST-800-57, NIST-800-63B]
+
+# Mosca's "z": when a cryptographically relevant quantum computer (CRQC) might exist.
+# These are PLANNING SCENARIOS, not predictions. Each is a window of years built around
+# a cited estimate; the analysis is calculated at planning_year, which must fall inside
+# the window. Named from the defender's point of view: "optimistic" = the CRQC is late.
+#   window         [earliest, latest], strictly after as_of_year
+#   planning_year  the year used for the calculation
+#   basis          why this window, in plain words
+#   sources        citation keys from sources.py
+# Windows must not overlap and must run from earliest (Pessimistic) to latest.
+scenarios:
+  - name: Pessimistic
+    window: [2030, 2032]
+    planning_year: 2031
+    basis: "early arrival: Mosca (2015) put a 1-in-2 chance on 2031; EO 14412 sets 2030-2031 PQC deadlines for high-value US federal systems"
+    sources: [MOSCA-2015, EO-14412]
+
+  - name: Base
+    window: [2033, 2037]
+    planning_year: 2035
+    basis: "GRI 2025 expert survey: 28-49% likely within 10 years of the 2025 survey, 'by roughly 2035'; 2035 is also the NIST IR 8547 (draft) disallow date and the UK NCSC completion date"
+    sources: [GRI-2025, NIST-IR-8547, NCSC-TIMELINE]
+
+  - name: Optimistic
+    window: [2038, 2042]
+    planning_year: 2040
+    basis: "late arrival: GRI 2025 rates a CRQC 51-70% likely within 15 years of the 2025 survey (about 2040), so windows much later are hard to defend"
+    sources: [GRI-2025]

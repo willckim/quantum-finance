@@ -6,6 +6,10 @@
 qiskit==2.3.1
 qiskit-aer==0.17.2
 
+# Post-quantum key exchange (04_security/pqc_readiness): ML-KEM needs 48.0.0 or later
+cryptography>=48.0.0
+pyyaml>=6.0            # pqc_config.yaml (loaded with yaml.safe_load)
+
 # Numerical / plotting
 numpy==2.4.4
 scipy==1.17.1
