@@ -5,7 +5,7 @@ memory). Modules import these values instead of retyping them, so a number and i
 citation cannot drift apart, and the audit report prints this list as its references.
 
 STATUS: every source carries one of three labels, and the report must repeat the label
-wherever the source is cited (run_all.py checks this paragraph by paragraph):
+at every citation (run_all.py checks each citation in the report):
   verified    the claim was read on the page at the URL
   draft       the document is a public draft; cited as the stated direction of travel,
               not as a final requirement (NIST IR 8547, NIST SP 800-131A Rev. 3)
@@ -155,6 +155,21 @@ _ALL = (
            "'If a PQ/T hybrid scheme is chosen, the NCSC recommends it is used as an interim "
            "measure', within a framework that allows a later move to PQC-only",
            "https://www.ncsc.gov.uk/whitepaper/next-steps-preparing-for-post-quantum-cryptography"),
+    # --- remediation targets (migration register) ---------------------------------------
+    Source("FIPS-197", "NIST FIPS 197 (updated 2023), Advanced Encryption Standard (AES), "
+           "including 256-bit keys", "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197-upd1.pdf"),
+    Source("FIPS-180-4", "NIST FIPS 180-4, Secure Hash Standard: the SHA-2 family (SHA-256, "
+           "SHA-384, SHA-512)", "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf"),
+    Source("FIPS-202", "NIST FIPS 202, SHA-3 Standard: permutation-based hash functions",
+           "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf"),
+    Source("RFC-8446", "RFC 8446, The Transport Layer Security (TLS) Protocol Version 1.3 "
+           "(Aug 2018)", "https://www.rfc-editor.org/rfc/rfc8446"),
+    Source("NIST-800-57-STRENGTH", "NIST SP 800-57 Part 1 Rev. 5, Table 2: 112-bit security "
+           "strength corresponds to 2048-bit RSA (k = 2048) and finite-field DH/DSA (L = 2048)",
+           "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-57pt1r5.pdf"),
+    Source("CYCLONEDX-1.7", "CycloneDX 1.7 (Oct 2025; schema release 1.7.2, Sept 2026), also "
+           "published as ECMA-424 2nd edition: cryptographic assets as BOM components (CBOM)",
+           "https://cyclonedx.org/docs/1.7/json/"),
     # --- Shor resource estimates (Part 1) ----------------------------------------------
     Source("GIDNEY-2025", "Gidney, How to factor 2048 bit RSA integers with less than a "
            "million noisy qubits (arXiv 2505.15917, May 2025): about 1,400 logical qubits "
@@ -170,6 +185,12 @@ _ALL = (
 )
 
 SOURCES: dict[str, Source] = {s.key: s for s in _ALL}
+
+
+def label(key: str) -> str:
+    """'[KEY]', followed by ' (draft)' or ' (unverified)' when the source is not final."""
+    status = SOURCES[key].status
+    return f"[{key}]" + ("" if status == VERIFIED else f" ({status})")
 
 
 @dataclass(frozen=True)

@@ -53,10 +53,8 @@ from dataclasses import dataclass
 
 from common import Check, not_run, section
 from config import Config, DataType, Scenario, matches_shipped_defaults
-
-EXPOSED_NOW = "EXPOSED NOW"          # x > z: exposed even if migration finished today
-EXPOSED = "EXPOSED"                  # x + y > z: exposed at the planned migration speed
-SAFE = "safe"
+# One spelling of each status, shared with the priority rules that test for them.
+from priority_rules import EXPOSED, EXPOSED_NOW, SAFE  # noqa: F401  (re-exported)
 
 
 @dataclass(frozen=True)

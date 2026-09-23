@@ -36,9 +36,15 @@ SEED = 2026
 SHOR_SHOTS = 2_048                       # shots for the sampled Shor run
 KEM_TIMING_ROUNDS = 1_000                # timed repetitions per key-exchange operation
 
+# Recorded in every register row and in the CBOM, so a rerun can be matched to its tool.
+TOOL_VERSION = "3.0.0"
+
 REPORT_MD = HERE / "pqc_readiness_report.md"
 CHART_PNG = HERE / "pqc_readiness_chart.png"
 RUN_LOG_JSON = HERE / "pqc_run_log.json"
+REGISTER_CSV = HERE / "migration_register.csv"
+REGISTER_XLSX = HERE / "migration_register.xlsx"
+CBOM_JSON = HERE / "pqc_cbom.cdx.json"
 
 
 def scan_root() -> Path:

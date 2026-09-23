@@ -117,3 +117,39 @@ scenarios:
     planning_year: 2040
     basis: "late arrival: GRI 2025 rates a CRQC 51-70% likely within 15 years of the 2025 survey (about 2040), so windows much later are hard to defend"
     sources: [GRI-2025]
+
+# Migration priority for each row of the migration register (migration_register.py).
+# A PLANNING AID, not a risk rating from a certified assessment. The FIRST rule whose
+# conditions all hold decides the row; omitted conditions match anything.
+#   category     scanner class: quantum-vulnerable | classically weak | PQC-ready
+#   classified   true = the asset register maps the file to data types; false = it does not
+#   base_status  Mosca status of the row's governing data type (longest shelf life) in the
+#                Base scenario: EXPOSED NOW | EXPOSED | safe
+# On load, every possible row is checked: each must reach a rule, and each rule must be
+# the first match for at least one kind of row (a rule that can never fire is rejected).
+priority_levels: [High, Medium, Low, Needs owner review, Monitor]
+priority_rules:
+  - id: R1
+    priority: High
+    when: {category: [classically weak]}
+    reason: "Weak today without a quantum computer, whatever data it protects"
+  - id: R2
+    priority: Monitor
+    when: {category: [PQC-ready]}
+    reason: "Already post-quantum or Grover-resistant; confirm the implementation is validated"
+  - id: R3
+    priority: Needs owner review
+    when: {classified: false}
+    reason: "Not in the asset register, so the data it protects and its exposure are unknown"
+  - id: R4
+    priority: High
+    when: {category: [quantum-vulnerable], base_status: [EXPOSED NOW]}
+    reason: "The data's shelf life alone outlasts the Base window: records protected this way today are already exposed"
+  - id: R5
+    priority: Medium
+    when: {category: [quantum-vulnerable], base_status: [EXPOSED]}
+    reason: "Exposed in the Base window at the planned migration pace; migrating sooner would avoid it"
+  - id: R6
+    priority: Low
+    when: {category: [quantum-vulnerable]}
+    reason: "Not exposed in the Base window at the planned migration pace"

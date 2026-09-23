@@ -1,0 +1,1009 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.7",
+  "serialNumber": "urn:uuid:48427d77-7798-5160-93ec-313eacc3fde9",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-09-23T16:13:27+00:00",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "pqc-readiness-toolkit",
+          "version": "3.0.0"
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "bom-ref": "scan-root",
+      "name": "sample_codebase"
+    },
+    "properties": [
+      {
+        "name": "pqc-readiness:config-sha256",
+        "value": "1c2237d8d828a6351796d5b8067c193674ebf4ffd3c9c1cf15cc5fc9cddccc8c"
+      },
+      {
+        "name": "pqc-readiness:register-sha256",
+        "value": "499197697a11c988f6eee7a05ae816a05695f658ff3890ec25ffcaab4e38d090"
+      },
+      {
+        "name": "pqc-readiness:note",
+        "value": "Synthetic sample; names seen in text, not verified deployments."
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:rsa-scheme-not-identified",
+      "name": "RSA (scheme not identified)",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "unknown",
+          "nistQuantumSecurityLevel": 0
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "batch_jobs/LedgerExportSigner.java",
+            "line": 5,
+            "additionalContext": "QV-RSA: matched 'RSA'"
+          },
+          {
+            "location": "config/gateway_nginx.conf",
+            "line": 7,
+            "additionalContext": "QV-RSA: matched 'RSA'"
+          },
+          {
+            "location": "config/sftp_vendor_feed.yaml",
+            "line": 4,
+            "additionalContext": "QV-RSA: matched 'rsa'"
+          },
+          {
+            "location": "payments_api/tls_client.py",
+            "line": 6,
+            "additionalContext": "QV-RSA: matched 'rsa'"
+          },
+          {
+            "location": "payments_api/tls_client.py",
+            "line": 17,
+            "additionalContext": "QV-RSA: matched 'rsa'"
+          },
+          {
+            "location": "payments_api/webhook_verify.js",
+            "line": 11,
+            "additionalContext": "QV-RSA: matched 'RS256'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "quantum-vulnerable"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:dsa",
+      "name": "DSA",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "algorithmFamily": "DSA",
+          "nistQuantumSecurityLevel": 0
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "batch_jobs/LedgerExportSigner.java",
+            "line": 11,
+            "additionalContext": "QV-DSA: matched 'DSA'"
+          },
+          {
+            "location": "config/sftp_vendor_feed.yaml",
+            "line": 7,
+            "additionalContext": "QV-DSA: matched 'ssh-dss'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "quantum-vulnerable"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:2048-bit-key-algorithm-not-identified",
+      "name": "2048-bit key (algorithm not identified)",
+      "cryptoProperties": {
+        "assetType": "related-crypto-material",
+        "relatedCryptoMaterialProperties": {
+          "type": "key",
+          "size": 2048
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "batch_jobs/LedgerExportSigner.java",
+            "line": 12,
+            "additionalContext": "QV-KEYSIZE: matched 'initialize(2048'"
+          },
+          {
+            "location": "payments_api/tls_client.py",
+            "line": 17,
+            "additionalContext": "QV-KEYSIZE: matched 'key_size=2048'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "quantum-vulnerable"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:sha-1",
+      "name": "SHA-1",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "algorithmFamily": "SHA-1"
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "batch_jobs/LedgerExportSigner.java",
+            "line": 13,
+            "additionalContext": "CW-SHA1: matched 'SHA-1'"
+          },
+          {
+            "location": "config/gateway_nginx.conf",
+            "line": 7,
+            "additionalContext": "CW-SHA1: matched '-SHA'"
+          },
+          {
+            "location": "config/sftp_vendor_feed.yaml",
+            "line": 11,
+            "additionalContext": "CW-SHA1: matched 'sha1'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "classically weak"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:finite-field-diffie-hellman",
+      "name": "Finite-field Diffie-Hellman",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "key-agree",
+          "algorithmFamily": "FFDH",
+          "nistQuantumSecurityLevel": 0
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "batch_jobs/LedgerExportSigner.java",
+            "line": 14,
+            "additionalContext": "QV-DH: matched 'DiffieHellman'"
+          },
+          {
+            "location": "config/gateway_nginx.conf",
+            "line": 7,
+            "additionalContext": "QV-DH: matched 'DHE'"
+          },
+          {
+            "location": "config/gateway_nginx.conf",
+            "line": 9,
+            "additionalContext": "QV-DH: matched 'dhparam'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "quantum-vulnerable"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:ecdsa",
+      "name": "ECDSA",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "algorithmFamily": "ECDSA",
+          "nistQuantumSecurityLevel": 0
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "batch_jobs/LedgerExportSigner.java",
+            "line": 15,
+            "additionalContext": "QV-ECC: matched 'withECDSA'"
+          },
+          {
+            "location": "config/sftp_vendor_feed.yaml",
+            "line": 8,
+            "additionalContext": "QV-ECC: matched 'ecdsa'"
+          },
+          {
+            "location": "payments_api/tls_client.py",
+            "line": 21,
+            "additionalContext": "QV-ECC: matched 'ECDSA'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "quantum-vulnerable"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:3des",
+      "name": "3DES",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "block-cipher",
+          "algorithmFamily": "3DES"
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "batch_jobs/LedgerExportSigner.java",
+            "line": 16,
+            "additionalContext": "CW-CIPHER: matched 'DESede'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "classically weak"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:x25519mlkem768",
+      "name": "X25519MLKEM768",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "kem",
+          "nistQuantumSecurityLevel": 3
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "batch_jobs/archive_encrypt.py",
+            "line": 3,
+            "additionalContext": "PQ-HYBRID: matched 'X25519MLKEM768'"
+          },
+          {
+            "location": "batch_jobs/archive_encrypt.py",
+            "line": 8,
+            "additionalContext": "PQ-HYBRID: matched 'X25519MLKEM768'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "PQC-ready"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:aes-256",
+      "name": "AES-256",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "block-cipher",
+          "algorithmFamily": "AES",
+          "parameterSetIdentifier": "256",
+          "nistQuantumSecurityLevel": 5
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "batch_jobs/archive_encrypt.py",
+            "line": 4,
+            "additionalContext": "PQ-SYMMETRIC: matched 'AES-256'"
+          },
+          {
+            "location": "batch_jobs/archive_encrypt.py",
+            "line": 11,
+            "additionalContext": "PQ-SYMMETRIC: matched 'AES-256'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "PQC-ready"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:ml-kem",
+      "name": "ML-KEM",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "kem",
+          "algorithmFamily": "ML-KEM"
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "batch_jobs/archive_encrypt.py",
+            "line": 9,
+            "additionalContext": "PQ-KEM: matched 'ML-KEM'"
+          },
+          {
+            "location": "batch_jobs/archive_encrypt.py",
+            "line": 13,
+            "additionalContext": "PQ-KEM: matched 'ml_kem'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "PQC-ready"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:ml-dsa",
+      "name": "ML-DSA",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "algorithmFamily": "ML-DSA"
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "batch_jobs/archive_encrypt.py",
+            "line": 10,
+            "additionalContext": "PQ-SIGNATURE: matched 'ML-DSA'"
+          },
+          {
+            "location": "batch_jobs/archive_encrypt.py",
+            "line": 14,
+            "additionalContext": "PQ-SIGNATURE: matched 'ml_dsa'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "PQC-ready"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:sha-384",
+      "name": "SHA-384",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "algorithmFamily": "SHA-2",
+          "parameterSetIdentifier": "384"
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "batch_jobs/archive_encrypt.py",
+            "line": 12,
+            "additionalContext": "PQ-HASH: matched 'SHA-384'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "PQC-ready"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:tls-1.0",
+      "name": "TLS 1.0",
+      "cryptoProperties": {
+        "assetType": "protocol",
+        "protocolProperties": {
+          "type": "tls",
+          "version": "1.0"
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "config/gateway_nginx.conf",
+            "line": 6,
+            "additionalContext": "CW-TLS-LEGACY: matched 'TLSv1'"
+          },
+          {
+            "location": "infra/load_balancer.tf",
+            "line": 5,
+            "additionalContext": "CW-TLS-LEGACY: matched 'TLS-1-0'"
+          },
+          {
+            "location": "payments_api/tls_client.py",
+            "line": 13,
+            "additionalContext": "CW-TLS-LEGACY: matched 'TLSv1'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "classically weak"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:ecdh",
+      "name": "ECDH",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "key-agree",
+          "algorithmFamily": "ECDH",
+          "nistQuantumSecurityLevel": 0
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "config/gateway_nginx.conf",
+            "line": 7,
+            "additionalContext": "QV-ECC: matched 'ECDHE'"
+          },
+          {
+            "location": "config/gateway_nginx.conf",
+            "line": 8,
+            "additionalContext": "QV-ECC: matched 'ecdh'"
+          },
+          {
+            "location": "config/sftp_vendor_feed.yaml",
+            "line": 10,
+            "additionalContext": "QV-ECC: matched 'curve25519'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "quantum-vulnerable"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:ssl-legacy",
+      "name": "SSL (legacy)",
+      "cryptoProperties": {
+        "assetType": "protocol",
+        "protocolProperties": {
+          "type": "other"
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "config/gateway_nginx.conf",
+            "line": 10,
+            "additionalContext": "CW-TLS-LEGACY: matched 'SSL 3.0'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "classically weak"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:1024-bit-key-algorithm-not-identified",
+      "name": "1024-bit key (algorithm not identified)",
+      "cryptoProperties": {
+        "assetType": "related-crypto-material",
+        "relatedCryptoMaterialProperties": {
+          "type": "key",
+          "size": 1024
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "config/sftp_vendor_feed.yaml",
+            "line": 5,
+            "additionalContext": "CW-KEYSIZE: matched 'key_size: 1024'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "classically weak"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:tls-policy-allowing-1.0",
+      "name": "TLS policy allowing 1.0",
+      "cryptoProperties": {
+        "assetType": "protocol",
+        "protocolProperties": {
+          "type": "tls"
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "infra/load_balancer.tf",
+            "line": 11,
+            "additionalContext": "CW-TLS-LEGACY: matched 'ELBSecurityPolicy-2016-08'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "classically weak"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:elliptic-curve-cryptography-use-unknown",
+      "name": "Elliptic-curve cryptography (use unknown)",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "unknown",
+          "nistQuantumSecurityLevel": 0
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "payments_api/tls_client.py",
+            "line": 20,
+            "additionalContext": "QV-ECC: matched 'EllipticCurve'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "quantum-vulnerable"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:md5",
+      "name": "MD5",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "algorithmFamily": "MD5"
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "payments_api/webhook_verify.js",
+            "line": 7,
+            "additionalContext": "CW-MD5: matched 'md5'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "classically weak"
+        }
+      ]
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto:eddsa",
+      "name": "EdDSA",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "algorithmFamily": "EdDSA",
+          "nistQuantumSecurityLevel": 0
+        }
+      },
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "payments_api/webhook_verify.js",
+            "line": 11,
+            "additionalContext": "QV-ECC: matched 'EdDSA'"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "pqc-readiness:category",
+          "value": "quantum-vulnerable"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "file:batch-jobs-ledgerexportsigner.java",
+      "name": "batch_jobs/LedgerExportSigner.java",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "fe402e3d3f6d441373a5800ec546a2cdcaffbf556f1f6ff5591094a40b7ac42e"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pqc-readiness:asset-ids",
+          "value": "GL-EXPORT; CLOSE-BATCH"
+        },
+        {
+          "name": "pqc-readiness:classification",
+          "value": "M&A documents: longest shelf life of 3 mapped data types (M&A documents 18 yr; Audit workpapers 7 yr; Tax records 7 yr)"
+        },
+        {
+          "name": "pqc-readiness:highest-priority",
+          "value": "High"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "file:batch-jobs-archive-encrypt.py",
+      "name": "batch_jobs/archive_encrypt.py",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5d422e38a3cff80fc41df4de909bccd4b7b3df17e0a6364f6d2af309b8c4a91a"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pqc-readiness:asset-ids",
+          "value": "CLOSE-BATCH"
+        },
+        {
+          "name": "pqc-readiness:classification",
+          "value": "M&A documents: longest shelf life of 2 mapped data types (M&A documents 18 yr; Audit workpapers 7 yr)"
+        },
+        {
+          "name": "pqc-readiness:highest-priority",
+          "value": "Monitor"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "file:config-gateway-nginx.conf",
+      "name": "config/gateway_nginx.conf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "66ce4c4d2e3b4c32194d521531c7f265b4f458e09247c75a9131527b417766a5"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pqc-readiness:asset-ids",
+          "value": "none"
+        },
+        {
+          "name": "pqc-readiness:classification",
+          "value": "Unclassified: needs owner review"
+        },
+        {
+          "name": "pqc-readiness:highest-priority",
+          "value": "High"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "file:config-sftp-vendor-feed.yaml",
+      "name": "config/sftp_vendor_feed.yaml",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e9578b7776fd69362abd4fe4e1f3d157d4f46d0730ff700e167c7e8f86478bb1"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pqc-readiness:asset-ids",
+          "value": "VENDOR-SFTP"
+        },
+        {
+          "name": "pqc-readiness:classification",
+          "value": "Contracts: longest shelf life of 2 mapped data types (Contracts 4 yr; Bank credentials 2 yr)"
+        },
+        {
+          "name": "pqc-readiness:highest-priority",
+          "value": "High"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "file:infra-load-balancer.tf",
+      "name": "infra/load_balancer.tf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "de7510921305483d02de9ee1abaa90490bd34de8c10f1565c38feff934bf862c"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pqc-readiness:asset-ids",
+          "value": "none"
+        },
+        {
+          "name": "pqc-readiness:classification",
+          "value": "Unclassified: needs owner review"
+        },
+        {
+          "name": "pqc-readiness:highest-priority",
+          "value": "High"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "file:payments-api-tls-client.py",
+      "name": "payments_api/tls_client.py",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "31537afdff32c36662900ffa896591b7cead16862cec6b7ab310a19aee8e94f0"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pqc-readiness:asset-ids",
+          "value": "CARD-SETTLE"
+        },
+        {
+          "name": "pqc-readiness:classification",
+          "value": "Customer payment data (5 yr)"
+        },
+        {
+          "name": "pqc-readiness:highest-priority",
+          "value": "High"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "file:payments-api-webhook-verify.js",
+      "name": "payments_api/webhook_verify.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "88ca807e8280fd8ec793dff9990895a38c648623d5bdd61c3967119a3bd5b730"
+        }
+      ],
+      "properties": [
+        {
+          "name": "pqc-readiness:asset-ids",
+          "value": "PAY-WEBHOOK"
+        },
+        {
+          "name": "pqc-readiness:classification",
+          "value": "Customer payment data (5 yr)"
+        },
+        {
+          "name": "pqc-readiness:highest-priority",
+          "value": "High"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "scan-root",
+      "dependsOn": [
+        "file:batch-jobs-ledgerexportsigner.java",
+        "file:batch-jobs-archive-encrypt.py",
+        "file:config-gateway-nginx.conf",
+        "file:config-sftp-vendor-feed.yaml",
+        "file:infra-load-balancer.tf",
+        "file:payments-api-tls-client.py",
+        "file:payments-api-webhook-verify.js"
+      ]
+    },
+    {
+      "ref": "file:batch-jobs-ledgerexportsigner.java",
+      "dependsOn": [
+        "crypto:2048-bit-key-algorithm-not-identified",
+        "crypto:3des",
+        "crypto:dsa",
+        "crypto:ecdsa",
+        "crypto:finite-field-diffie-hellman",
+        "crypto:rsa-scheme-not-identified",
+        "crypto:sha-1"
+      ]
+    },
+    {
+      "ref": "file:batch-jobs-archive-encrypt.py",
+      "dependsOn": [
+        "crypto:aes-256",
+        "crypto:ml-dsa",
+        "crypto:ml-kem",
+        "crypto:sha-384",
+        "crypto:x25519mlkem768"
+      ]
+    },
+    {
+      "ref": "file:config-gateway-nginx.conf",
+      "dependsOn": [
+        "crypto:ecdh",
+        "crypto:finite-field-diffie-hellman",
+        "crypto:rsa-scheme-not-identified",
+        "crypto:sha-1",
+        "crypto:ssl-legacy",
+        "crypto:tls-1.0"
+      ]
+    },
+    {
+      "ref": "file:config-sftp-vendor-feed.yaml",
+      "dependsOn": [
+        "crypto:1024-bit-key-algorithm-not-identified",
+        "crypto:dsa",
+        "crypto:ecdh",
+        "crypto:ecdsa",
+        "crypto:rsa-scheme-not-identified",
+        "crypto:sha-1"
+      ]
+    },
+    {
+      "ref": "file:infra-load-balancer.tf",
+      "dependsOn": [
+        "crypto:tls-1.0",
+        "crypto:tls-policy-allowing-1.0"
+      ]
+    },
+    {
+      "ref": "file:payments-api-tls-client.py",
+      "dependsOn": [
+        "crypto:2048-bit-key-algorithm-not-identified",
+        "crypto:ecdsa",
+        "crypto:elliptic-curve-cryptography-use-unknown",
+        "crypto:rsa-scheme-not-identified",
+        "crypto:tls-1.0"
+      ]
+    },
+    {
+      "ref": "file:payments-api-webhook-verify.js",
+      "dependsOn": [
+        "crypto:eddsa",
+        "crypto:md5",
+        "crypto:rsa-scheme-not-identified"
+      ]
+    },
+    {
+      "ref": "crypto:rsa-scheme-not-identified"
+    },
+    {
+      "ref": "crypto:dsa"
+    },
+    {
+      "ref": "crypto:2048-bit-key-algorithm-not-identified"
+    },
+    {
+      "ref": "crypto:sha-1"
+    },
+    {
+      "ref": "crypto:finite-field-diffie-hellman"
+    },
+    {
+      "ref": "crypto:ecdsa"
+    },
+    {
+      "ref": "crypto:3des"
+    },
+    {
+      "ref": "crypto:x25519mlkem768"
+    },
+    {
+      "ref": "crypto:aes-256"
+    },
+    {
+      "ref": "crypto:ml-kem"
+    },
+    {
+      "ref": "crypto:ml-dsa"
+    },
+    {
+      "ref": "crypto:sha-384"
+    },
+    {
+      "ref": "crypto:tls-1.0"
+    },
+    {
+      "ref": "crypto:ecdh"
+    },
+    {
+      "ref": "crypto:ssl-legacy"
+    },
+    {
+      "ref": "crypto:1024-bit-key-algorithm-not-identified"
+    },
+    {
+      "ref": "crypto:tls-policy-allowing-1.0"
+    },
+    {
+      "ref": "crypto:elliptic-curve-cryptography-use-unknown"
+    },
+    {
+      "ref": "crypto:md5"
+    },
+    {
+      "ref": "crypto:eddsa"
+    }
+  ]
+}

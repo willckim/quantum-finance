@@ -21,7 +21,7 @@ from config import Config
 from crypto_scanner import CW, PQ, QV, ScanResult
 from key_exchange import KemProfile
 from mosca import EXPOSED_NOW, SAFE, Assessment
-from sources import SOURCES, VERIFIED
+from sources import label
 from vendor_review import Rating
 
 BASE = "Base"
@@ -31,12 +31,6 @@ SAMPLE_WEAK = (" They include TLS 1.0/1.1 on a customer portal and a settlement 
                "SHA-1 and MD5 digests, 3DES, and a 1024-bit RSA key on a vendor file "
                "transfer.")
 SAMPLE_HARDCODED = ' (for example, `key_size=2048`, `getInstance("DSA")`, `RS256`)'
-
-
-def label(key: str) -> str:
-    """'[KEY]', followed by ' (draft)' or ' (unverified)' when the source is not final."""
-    status = SOURCES[key].status
-    return f"[{key}]" + ("" if status == VERIFIED else f" ({status})")
 
 
 def cite(*keys: str) -> str:

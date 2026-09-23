@@ -1,0 +1,55 @@
+# =====================================================================================
+# Asset register: which data each system, folder or file handles. HUMAN-SUPPLIED.
+# =====================================================================================
+# The toolkit NEVER infers what data a file protects. Classification comes only from this
+# file. A finding in a file that no entry covers is reported as
+# "Unclassified: needs owner review", never guessed.
+#
+#   id          short, unique asset identifier
+#   name        what the asset is
+#   owner       the accountable team or role
+#   paths       patterns relative to the scanned folder, forward slashes. "*" matches any
+#               characters INCLUDING "/", so "batch_jobs/*" covers every file below it.
+#   data_types  names from pqc_config.yaml (the Mosca inventory)
+#
+# A file matched by several entries takes the UNION of their data types; the register
+# then uses the longest shelf life among them and says so on the row.
+#
+# SYNTHETIC EXAMPLE for sample_codebase/ (the fictional "SampleCo Finance"). Two sample
+# files are deliberately NOT registered, to show unclassified handling:
+#   config/gateway_nginx.conf   (customer portal gateway)
+#   infra/load_balancer.tf      (portal load balancers)
+#
+# Point the toolkit at your own register with:  PQC_ASSET_REGISTER=<path> py run_all.py
+# =====================================================================================
+
+assets:
+  - id: CARD-SETTLE
+    name: Card settlement client
+    owner: Payments engineering
+    paths: [payments_api/tls_client.py]
+    data_types: [Customer payment data]
+
+  - id: PAY-WEBHOOK
+    name: Payment processor webhook verifier
+    owner: Payments engineering
+    paths: [payments_api/webhook_verify.js]
+    data_types: [Customer payment data]
+
+  - id: VENDOR-SFTP
+    name: Vendor remittance SFTP feed
+    owner: Accounts payable systems
+    paths: [config/sftp_vendor_feed.yaml]
+    data_types: [Contracts, Bank credentials]
+
+  - id: GL-EXPORT
+    name: Month-end general ledger export signer
+    owner: Finance systems
+    paths: [batch_jobs/LedgerExportSigner.java]
+    data_types: [Audit workpapers, Tax records]
+
+  - id: CLOSE-BATCH
+    name: Closed-period batch jobs (archives and exports)
+    owner: Finance systems
+    paths: ["batch_jobs/*"]
+    data_types: [M&A documents, Audit workpapers]

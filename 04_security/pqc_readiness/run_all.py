@@ -26,12 +26,22 @@ WHAT EACH PART DOES, AND WHERE IT LIVES
                                  measured: key sizes, ciphertext sizes and timings.
     Part 6  vendor_review.py     WHAT THE SCANNER CANNOT SEE. Vendor questionnaire, tracker
                                  and computed vendor ratings.
+    Part 7  migration_register.py  WHAT TO DO FIRST. One prioritized row per finding:
+            asset_register.py      detected crypto, location, data classification (from the
+            priority_rules.py      asset register only), Mosca exposure, priority (stated
+            remediation.py         rule), remediation and evidence. CSV and xlsx outputs
+            register_outputs.py    via register_outputs.py.
+    Part 8  cbom.py              The same inventory as a CycloneDX 1.7 CBOM, schema-validated.
     Part 5  audit_report.py      THE DELIVERABLE. pqc_readiness_report.md (a readiness
-            report_findings.py   assessment in audit-finding format) and
-            exposure_chart.py    pqc_readiness_chart.png.
+            report_findings.py   assessment in audit-finding format, with the register
+            report_register.py   section) and pqc_readiness_chart.png.
+            exposure_chart.py
 
-    Inputs  pqc_config.yaml      Retention periods, migration time, scenario windows.
-            config.py            Loads and validates it.
+    Inputs  pqc_config.yaml      Retention periods, migration time, scenario windows,
+                                 and the migration priority rules.
+            asset_register.yaml  Which data each system or path handles (human-supplied).
+            config.py            Loads and validates the config (asset_register.py the
+                                 register); anything inconsistent stops the run.
             sources.py           Every external number with its citation and status.
     Samples sample_codebase/, sample_manifest.py, sample_expected_findings.csv,
             sample_vendor_tracker.csv, vendor_tracker_template.csv (all synthetic)
@@ -47,6 +57,7 @@ Point it at your own inputs without editing code:
     PQC_CONFIG=<your_config.yaml>          retention periods, migration time, scenarios
     PQC_VENDOR_TRACKER=<your_tracker.csv>  vendor answers (columns as in the template)
     PQC_SCAN_ROOT=<folder>                 code to scan (read-only)
+    PQC_ASSET_REGISTER=<your_register.yaml> which data each system or path handles
 Checks tied to the synthetic samples then report NOT RUN rather than PASS.
 """
 
@@ -65,20 +76,26 @@ import numpy as np
 import qiskit
 import qiskit_aer
 
+from asset_register import RegisterError, load_register, register_checks, unused_patterns
 from audit_report import DEFAULTS_NOTE, LIMITATION_STATEMENTS, gating_check, write_report
-from common import (CHART_PNG, HERE, REPORT_MD, RUN_LOG_JSON, Check, force_utf8_console,
-                    not_run, print_checks, scan_root, section)
+from cbom import part8_cbom
+from common import (CBOM_JSON, CHART_PNG, HERE, REGISTER_CSV, REGISTER_XLSX, REPORT_MD,
+                    RUN_LOG_JSON, TOOL_VERSION, Check, force_utf8_console, not_run,
+                    print_checks, scan_root, section)
 from config import ConfigError, config_checks, load_config
 from crypto_scanner import part3_scan
 from exposure_chart import render_chart
 from key_exchange import part4_key_exchange
+from migration_register import part7_register
 from mosca import SAFE, part2_mosca
+from register_outputs import output_checks, write_csv, write_xlsx
+from remediation import remediation_checks
+from report_register import register_section
 from shor_toy import part1_shor
 from sources import SOURCES, VERIFIED
 from validate_scanner import part3b_validation
 from vendor_review import QUESTIONNAIRE_MD, SAMPLE_TRACKER, TrackerError, part6_vendors
 
-VERSION = "2.0.0"
 EM_DASH = chr(0x2014)      # banned in every output; written as a code point, not the glyph
 README = HERE.parent.parent / "README.md"
 FINDING_ATTRIBUTES = ("**Condition.**", "**Criteria.**", "**Cause.**", "**Effect.**",
@@ -124,6 +141,15 @@ def _label_control(text: str) -> bool:
     near = f"see [{key}], which is still a {status} ({status}), and was {status}ed in 2024"
     return (len(label_problems(mutated)) == len(label_problems(text)) + 1
             and len(label_problems(near)) == 1)
+
+
+def register_section_check(text: str, rows, levels) -> Check:
+    counts = {lvl: sum(r.priority == lvl for r in rows) for lvl in levels}
+    section_text = text.split("\n## Migration register", 1)[-1].split("\n## ", 1)[0]
+    missing = [lvl for lvl, n in counts.items() if f"| {lvl} | {n} |" not in section_text]
+    return Check("Report: migration-register section shows the register's counts by priority",
+                 "\n## Migration register" in text and not missing,
+                 f"missing {missing}" if missing else f"{len(rows)} rows")
 
 
 def report_checks(text: str) -> list[Check]:
@@ -173,10 +199,10 @@ def report_checks(text: str) -> list[Check]:
 
 # ---- audit trail -----------------------------------------------------------------------
 def write_run_log(run_at: str, cfg, scan, mosca, kem, ratings, tracker: Path,
-                  checks: list[Check]) -> None:
+                  checks: list[Check], rows, meta) -> None:
     """What was read, what rules ran, what was produced, what was skipped."""
     log = {
-        "run_timestamp": run_at, "automation": "pqc-readiness-toolkit", "version": VERSION,
+        "run_timestamp": run_at, "automation": "pqc-readiness-toolkit", "version": TOOL_VERSION,
         "environment": {"python": sys.version.split()[0], "qiskit": qiskit.__version__,
                         "qiskit_aer": qiskit_aer.__version__, "numpy": np.__version__,
                         "cryptography": cryptography.__version__},
@@ -191,9 +217,15 @@ def write_run_log(run_at: str, cfg, scan, mosca, kem, ratings, tracker: Path,
                        "exposed_by_scenario": {name: sum(a.status != SAFE for a in rows)
                                                for name, rows in mosca.items()},
                        "vendor_ratings": {r.vendor.name: r.level for r in ratings},
+                       "register_rows_by_priority": {lvl: sum(r.priority == lvl for r in rows)
+                                                     for lvl in cfg.priority_levels},
                        "kem_profiles": [asdict(p) for p in kem]},
         "output": {"report": REPORT_MD.name, "chart": CHART_PNG.name,
-                   "questionnaire": QUESTIONNAIRE_MD.name},
+                   "questionnaire": QUESTIONNAIRE_MD.name, "register_csv": REGISTER_CSV.name,
+                   "register_xlsx": REGISTER_XLSX.name, "cbom": CBOM_JSON.name},
+        "evidence": {"config_sha256": meta.config_sha256,
+                     "register_sha256": meta.register_sha256,
+                     "scan_timestamp": meta.scan_timestamp},
         "exceptions": [{"file": p, "reason": r} for p, r in scan.skipped],
         "self_checks": {"passed": sum(c.passed for c in checks if not c.not_run),
                         "ran": sum(not c.not_run for c in checks),
@@ -201,6 +233,22 @@ def write_run_log(run_at: str, cfg, scan, mosca, kem, ratings, tracker: Path,
                         "not_run": [c.name for c in checks if c.not_run]},
     }
     RUN_LOG_JSON.write_text(json.dumps(log, indent=2) + "\n", encoding="utf-8")
+
+
+def register_stage(cfg, scan):
+    """Parts 7 and 8: the migration register, its CSV/xlsx, and the CBOM."""
+    register = load_register(cfg)
+    rows, meta, checks = part7_register(cfg, scan, register, scan_root())
+    write_csv(REGISTER_CSV, rows)
+    write_xlsx(REGISTER_XLSX, rows, cfg, meta, register.path_label)
+    checks += (register_checks(cfg) + remediation_checks()
+               + output_checks(rows, REGISTER_CSV, REGISTER_XLSX, cfg))
+    _, more = part8_cbom(rows, meta, cfg.priority_levels, CBOM_JSON)
+    csv_problems = label_problems(REGISTER_CSV.read_text(encoding="utf-8"))
+    checks += more + [Check("Outputs: every draft source cited in the CSV carries its label",
+                            not csv_problems, f"{len(csv_problems)} unlabeled")]
+    stale = unused_patterns(register, sorted(scan.file_sha256))
+    return rows, meta, register_section(rows, cfg, register, meta, stale), checks
 
 
 def main() -> int:
@@ -232,13 +280,21 @@ def main() -> int:
         print(f"VENDOR TRACKER ERROR ({tracker.name}): {exc}")
         return 2
     checks += more
+    try:
+        rows, meta, register_text, more = register_stage(cfg, scan)
+    except RegisterError as exc:
+        print(f"ASSET REGISTER ERROR: {exc}")
+        return 2
+    checks += more
 
     section("PART 5 -- READINESS REPORT AND CHART")
     render_chart(cfg, mosca, CHART_PNG)
-    text = write_report(REPORT_MD, cfg, mosca, scan, kem, shor, ratings, tracker.name, checks)
-    checks += report_checks(text)
-    write_run_log(run_at, cfg, scan, mosca, kem, ratings, tracker, checks)
-    for path in (REPORT_MD, CHART_PNG, QUESTIONNAIRE_MD, RUN_LOG_JSON):
+    text = write_report(REPORT_MD, cfg, mosca, scan, kem, shor, ratings, tracker.name, checks,
+                        register_text)
+    checks += report_checks(text) + [register_section_check(text, rows, cfg.priority_levels)]
+    write_run_log(run_at, cfg, scan, mosca, kem, ratings, tracker, checks, rows, meta)
+    for path in (REPORT_MD, CHART_PNG, QUESTIONNAIRE_MD, REGISTER_CSV, REGISTER_XLSX,
+                 CBOM_JSON, RUN_LOG_JSON):
         print(f"  wrote {path.relative_to(HERE)}")
     return 0 if print_checks(checks) else 1
 

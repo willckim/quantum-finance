@@ -13,6 +13,7 @@ construct arbitrary Python objects.
 from __future__ import annotations
 
 import copy
+import hashlib
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,9 +22,14 @@ from typing import Any
 import yaml
 
 from common import HERE, Check
+from priority_rules import PriorityRule, RuleError, parse_rules
 from sources import SOURCES
 
 DEFAULT_CONFIG = HERE / "pqc_config.yaml"
+# Line-ending-normalized SHA-256 of the SHIPPED pqc_config.yaml. Checks worked out by hand
+# for the defaults run only when the loaded config has exactly this content; an
+# organization's own config, edited in place or elsewhere, gets NOT RUN, not a false FAIL.
+SHIPPED_CONFIG_FINGERPRINT = "36d63a30ecadeb38e4c15018f6c0d793e1347c39186a4573c0ab98650406fa39"
 BASIS_TYPES = ("regulation", "assumption", "policy")
 # The rest of the toolkit reads scenarios by these names (the vendor rating and the report
 # use Base and Pessimistic), so the names are fixed; only their windows are configurable.
@@ -68,7 +74,11 @@ class Config:
     migration_sources: tuple[str, ...]
     data_types: tuple[DataType, ...]
     scenarios: tuple[Scenario, ...]
+    priority_rules: tuple[PriorityRule, ...]
+    priority_levels: tuple[str, ...]
     path_label: str                 # file name only: never a machine path
+    sha256: str = ""                # of the exact bytes parsed (evidence)
+    fingerprint: str = ""           # line-ending-normalized, to recognize the shipped file
 
 
 # ---- field readers (each raises ConfigError naming the field) ------------------------
@@ -136,7 +146,12 @@ def _scenario(raw: dict, i: int, as_of: int) -> Scenario:
                     _text(raw, "basis", where), _sources(raw, where))
 
 
-def parse_config(raw: Any, path_label: str = "pqc_config.yaml") -> Config:
+def fingerprint(data: bytes) -> str:
+    """SHA-256 with CRLF folded to LF, so a Windows checkout reads as the same content."""
+    return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
+
+
+def parse_config(raw: Any, path_label: str = "pqc_config.yaml", data: bytes = b"") -> Config:
     if not isinstance(raw, dict):
         raise ConfigError("config: expected a mapping at the top level")
     as_of = _int(raw, "as_of_year", "config", 2000, 2100)
@@ -162,19 +177,25 @@ def parse_config(raw: Any, path_label: str = "pqc_config.yaml") -> Config:
                               f"({a.name} {a.window} vs {b.name} {b.window})")
     # Sorted longest shelf life first, so tables and the chart lead with the riskiest data.
     ordered = tuple(sorted(data_types, key=lambda d: (-d.shelf_life, d.name)))
+    try:
+        rules, levels = parse_rules(_get(raw, "priority_rules", "config"),
+                                    _get(raw, "priority_levels", "config"))
+    except RuleError as exc:
+        raise ConfigError(str(exc)) from exc
     return Config(as_of, _int(migration, "years", "migration", 0, 50),
-                  _sources(migration, "migration"), ordered, scenarios, path_label)
+                  _sources(migration, "migration"), ordered, scenarios, rules, levels,
+                  path_label, hashlib.sha256(data).hexdigest() if data else "",
+                  fingerprint(data) if data else "")
 
 
 def matches_shipped_defaults(cfg: Config) -> bool:
-    """True when cfg holds exactly the shipped default inputs (whatever the file is called).
+    """True when the loaded config has exactly the shipped content (wherever it lives).
 
     Checks whose hand-worked answers assume the defaults run only when this is True, and
     report NOT RUN otherwise, so an organization's own inputs never produce a false FAIL.
+    Comparing content, not the path, also covers a pqc_config.yaml edited in place.
     """
-    shipped = parse_config(yaml.safe_load(DEFAULT_CONFIG.read_text(encoding="utf-8-sig")))
-    fields = ("as_of_year", "migration_years", "migration_sources", "data_types", "scenarios")
-    return all(getattr(cfg, f) == getattr(shipped, f) for f in fields)
+    return cfg.fingerprint == SHIPPED_CONFIG_FINGERPRINT
 
 
 def config_path() -> Path:
@@ -185,10 +206,11 @@ def config_path() -> Path:
 def load_config(path: Path | None = None) -> Config:
     path = path or config_path()
     try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8-sig"))   # tolerate a BOM
-    except (OSError, yaml.YAMLError) as exc:
+        data = path.read_bytes()             # hash and parse the SAME bytes
+        raw = yaml.safe_load(data.decode("utf-8-sig"))
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
         raise ConfigError(f"could not read {path.name}: {exc}") from exc
-    return parse_config(raw, path.name)
+    return parse_config(raw, path.name, data)
 
 
 # ======================================================================================
@@ -213,6 +235,21 @@ _BROKEN = (
     ("';' in a data type name", ("data_types", 0, "name"), "M&A; deals", "reserved"),
     ("renamed scenario", ("scenarios", 1, "name"), "Central", "names must be"),
     ("window past the year cap", ("scenarios", 2, "window"), [2038, 99999], "window"),
+    # priority rules: a gap, a rule that can never fire, and vocabulary errors
+    # R6 narrowed to EXPOSED NOW: a classified, quantum-vulnerable, Base-safe row matches nothing.
+    ("rule list with a gap", ("priority_rules", 5, "when"),
+     {"category": ["quantum-vulnerable"], "base_status": ["EXPOSED NOW"]}, "no priority rule"),
+    # R5 made identical to R4: R4 always wins, R6 still catches the rest, so R5 is dead.
+    ("rule that can never fire", ("priority_rules", 4, "when"),
+     {"category": ["quantum-vulnerable"], "base_status": ["EXPOSED NOW"]}, "never fire"),
+    ("unknown scanner class in a rule", ("priority_rules", 0, "when"), {"category": ["weakish"]},
+     "category"),
+    ("unknown Mosca status in a rule", ("priority_rules", 3, "when"),
+     {"category": ["quantum-vulnerable"], "base_status": ["EXPOSED SOON"]}, "base_status"),
+    ("priority not in priority_levels", ("priority_rules", 0, "priority"), "Urgent",
+     "priority_levels"),
+    ("priority level no rule assigns", ("priority_levels",),
+     ["High", "Medium", "Low", "Needs owner review", "Monitor", "Critical"], "never assigned"),
 )
 # Variants that must be ACCEPTED: a guard tested only against bad input proves it can
 # fire, not that it fires for the right reason.

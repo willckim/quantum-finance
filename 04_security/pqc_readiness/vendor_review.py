@@ -47,12 +47,15 @@ from datetime import date
 from pathlib import Path
 
 from common import HERE, Check, not_run, section
-from config import Config, DataType, matches_shipped_defaults
+from config import Config, DataType, fingerprint, matches_shipped_defaults
 from mosca import EXPOSED_NOW, SAFE, assess
 
 QUESTIONNAIRE_MD = HERE / "vendor_pqc_questionnaire.md"
 TRACKER_TEMPLATE = HERE / "vendor_tracker_template.csv"
 SAMPLE_TRACKER = HERE / "sample_vendor_tracker.csv"
+# Line-ending-normalized SHA-256 of the shipped sample tracker: the hand-worked ratings
+# only apply to that exact content (an edited tracker gets NOT RUN, not a false FAIL).
+SHIPPED_TRACKER_FINGERPRINT = "cc9efd483719bb04436dd1776217fc35c69570008c415ef8f8cca863ad86c55c"
 
 YES_NO = ("yes", "no", "unknown")
 COLUMNS = ("vendor", "service", "data_types_handled", "questionnaire_sent",
@@ -390,7 +393,7 @@ def part6_vendors(cfg: Config, tracker: Path = SAMPLE_TRACKER) -> tuple[list[Rat
     section("PART 6 -- VENDOR PQC REVIEW (what the scanner cannot see)")
     QUESTIONNAIRE_MD.write_text(questionnaire_markdown(), encoding="utf-8")
     ratings = [rate(v, cfg) for v in load_tracker(tracker, cfg)]
-    sample = tracker == SAMPLE_TRACKER
+    sample = fingerprint(tracker.read_bytes()) == SHIPPED_TRACKER_FINGERPRINT
     print(f"  Questionnaire: {len(QUESTIONS)} questions -> {QUESTIONNAIRE_MD.name}")
     print(f"  Tracker: {tracker.name} ({len(ratings)} vendors"
           f"{', all fictional' if sample else ''})\n")

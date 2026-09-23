@@ -18,7 +18,7 @@ use the Condition / Criteria / Cause / Effect / Recommendation format for readab
 | **Not assessed** | Live network endpoints, production systems, compiled software, databases, cloud-service settings, hardware security modules, key-management procedures, vendor controls beyond their recorded answers, and whether any control operates effectively |
 | **Default inputs** | From `pqc_config.yaml`: 8 of 8 shelf lives use default rules or assumptions (not organization policy); migration time 10 years [NCSC-TIMELINE], [NIST-IR-8547] (draft); quantum-arrival planning windows Pessimistic (2030-2032), Base (2033-2037), Optimistic (2038-2042) |
 | Assessment as of | 2026 |
-| Generated | 2026-09-23T09:59:41 by `run_all.py` in this folder (all figures reproducible) |
+| Generated | 2026-09-23T11:13:29 by `run_all.py` in this folder (all figures reproducible) |
 
 ## Executive summary
 
@@ -39,7 +39,7 @@ windows instead.
 * **Vendors.** The recorded answers of 5 vendors produce **2 High**
   ratings under the stated rule (Finding 5); answers are claims until evidenced.
 * **Cost of the fix.** On one workstation, hybrid key exchange took 2,336 bytes and
-  about 1.2 ms per handshake (Appendix C), which suggests computation and bandwidth
+  about 1.0 ms per handshake (Appendix C), which suggests computation and bandwidth
   are unlikely to be the main barriers.
 
 | # | Finding | Rating |
@@ -161,7 +161,7 @@ attack needs, which raises the bar without removing the threat.
 **Recommendation.**
 1. Centralize algorithm selection in configuration or a shared library.
 2. Migrate key exchange first, since it is what harvest-now, decrypt-later targets, using
-   the hybrid. Measured on one workstation: 2,336 bytes and about 1.2 ms per
+   the hybrid. Measured on one workstation: 2,336 bytes and about 1.0 ms per
    handshake (Appendix C).
 3. Plan signatures (RSA, ECDSA, DSA) to move to ML-DSA on the NIST schedule.
 
@@ -252,6 +252,81 @@ per its configuration, the closed-period archive uses hybrid X25519MLKEM768 key 
 ML-KEM-768, ML-DSA-65 signatures, AES-256-GCM and SHA-384. If confirmed in operation, it
 could serve as the reference pattern for other systems.
 
+## Migration register
+
+The register joins each scanner finding to the **asset register** (`asset_register.yaml`,
+5 entries, supplied by people, never inferred), then to the Mosca result
+for the data that asset handles, then to the **priority rule** in `pqc_config.yaml`. It adds
+no new judgment: exposure comes from the Mosca inputs, and priority from the stated rule.
+When a file maps to several data types, the row is governed by the longest shelf life and
+says so. Files: `migration_register.xlsx` (filterable, with a summary tab),
+`migration_register.csv`, and the CycloneDX 1.7 CBOM `pqc_cbom.cdx.json` [CYCLONEDX-1.7].
+
+| Priority | Rows | of which unclassified |
+|---|---|---|
+| High | 16 | 5 |
+| Medium | 11 | 0 |
+| Low | 0 | 0 |
+| Needs owner review | 5 | 5 |
+| Monitor | 9 | 0 |
+| **Total** | **41** | **10** |
+
+**Unclassified: needs owner review.** 2 files have findings but no
+asset-register entry: `config/gateway_nginx.conf`, `infra/load_balancer.tf`. Their exposure is
+unknown, so quantum-vulnerable findings there wait for an owner. Classically weak findings
+there are still High, because they do not depend on the data. Register patterns that
+matched no scanned file (possibly stale entries): none.
+
+**The priority rule** (the first rule whose conditions all hold decides the row; the Base
+window is Base (2033-2037), calculated at 2035). Any row can be checked by hand from
+its class, whether the register covers its file, and its Base exposure:
+
+| Order | Rule | Priority | Applies when | Reason | Rows |
+|---|---|---|---|---|---|
+| 1 | R1 | High | class is classically weak | Weak today without a quantum computer, whatever data it protects | 11 |
+| 2 | R2 | Monitor | class is PQC-ready | Already post-quantum or Grover-resistant; confirm the implementation is validated | 9 |
+| 3 | R3 | Needs owner review | NOT in the asset register | Not in the asset register, so the data it protects and its exposure are unknown | 5 |
+| 4 | R4 | High | class is quantum-vulnerable and Base-window status is EXPOSED NOW | The data's shelf life alone outlasts the Base window: records protected this way today are already exposed | 5 |
+| 5 | R5 | Medium | class is quantum-vulnerable and Base-window status is EXPOSED | Exposed in the Base window at the planned migration pace; migrating sooner would avoid it | 11 |
+| 6 | R6 | Low | class is quantum-vulnerable | Not exposed in the Base window at the planned migration pace | 0 |
+
+Priority is a planning aid for ordering the migration, not a risk rating from a certified
+assessment. No row is Low: at the 10-year migration pace, every registered data type is exposed in the Base window. A faster migration or a different inventory would change that.
+
+**Example rows** (up to 2 per priority; the full list is in the files above):
+
+| Row | Priority (rule) | File:line | Detected | Governing data type | Base exposure |
+|---|---|---|---|---|---|
+| F-4ffa25e7 | High (R4) | `batch_jobs/LedgerExportSigner.java:5` | QV-RSA: `RSA` | M&A documents | EXPOSED NOW (+19 yr) |
+| F-8d9a099c | High (R4) | `batch_jobs/LedgerExportSigner.java:11` | QV-DSA: `DSA` | M&A documents | EXPOSED NOW (+19 yr) |
+| F-532239eb | Medium (R5) | `config/sftp_vendor_feed.yaml:4` | QV-RSA: `rsa` | Contracts | EXPOSED (+5 yr) |
+| F-356c26b4 | Medium (R5) | `config/sftp_vendor_feed.yaml:7` | QV-DSA: `ssh-dss` | Contracts | EXPOSED (+5 yr) |
+| F-45737b76 | Needs owner review (R3) | `config/gateway_nginx.conf:7` | QV-DH: `DHE` | Unclassified: needs owner review | n/a (unclassified) |
+| F-671391a5 | Needs owner review (R3) | `config/gateway_nginx.conf:7` | QV-ECC: `ECDHE` | Unclassified: needs owner review | n/a (unclassified) |
+| F-4e5a16dd | Monitor (R2) | `batch_jobs/archive_encrypt.py:3` | PQ-HYBRID: `X25519MLKEM768` | M&A documents | n/a (not quantum-vulnerable) |
+| F-3bcccb2c | Monitor (R2) | `batch_jobs/archive_encrypt.py:4` | PQ-SYMMETRIC: `AES-256` | M&A documents | n/a (not quantum-vulnerable) |
+
+**Remediation targets.** Recommended starting point for assessment and migration planning; confirm against the system's requirements and vendor support first.
+
+| Finding type | Planning target | Sources |
+|---|---|---|
+| RSA | Assess whether RSA is used for key establishment or for signatures. For key establishment, plan a move to hybrid X25519MLKEM768 (ML-KEM-768 combined with X25519, the TLS 1.3 construction in RFC 10024); for signatures, plan a move to ML-DSA (FIPS 204), or SLH-DSA (FIPS 205) where hash-based signatures fit. | [FIPS-203], [RFC-10024], [FIPS-204-205], [NIST-IR-8547] (draft) |
+| Elliptic-curve (ECDH, ECDSA, EdDSA, X25519) | Assess whether the elliptic-curve use is key agreement (ECDH, X25519) or signatures (ECDSA, EdDSA). For key agreement, plan a move to hybrid X25519MLKEM768 (ML-KEM-768 combined with X25519, the TLS 1.3 construction in RFC 10024); for signatures, plan a move to ML-DSA (FIPS 204), or SLH-DSA (FIPS 205) where hash-based signatures fit. | [FIPS-203], [RFC-10024], [FIPS-204-205], [NIST-IR-8547] (draft) |
+| Finite-field Diffie-Hellman | Assess where finite-field Diffie-Hellman establishes keys, then plan a move to hybrid X25519MLKEM768 (ML-KEM-768 combined with X25519, the TLS 1.3 construction in RFC 10024). | [FIPS-203], [RFC-10024], [NIST-IR-8547] (draft) |
+| DSA | Assess what DSA signs and who verifies it, then plan a move to ML-DSA (FIPS 204), or SLH-DSA (FIPS 205) where hash-based signatures fit. | [FIPS-204-205], [NIST-IR-8547] (draft) |
+| Hardcoded key size, 2048 bits or more | A larger key does not protect against Shor's algorithm. Assess which algorithm this key size belongs to and plan its post-quantum replacement (key establishment on ML-KEM, signatures on ML-DSA); move key parameters into central configuration. | [FIPS-203], [FIPS-204-205] |
+| Key size under 2048 bits | Keys under 2048 bits fall below 112-bit security. Plan an interim move to at least 2048-bit keys and a post-quantum replacement as the target. | [NIST-800-57-STRENGTH], [FIPS-203], [FIPS-204-205] |
+| MD5 | Assess what the digest protects (integrity, signatures, or a non-security use such as de-duplication, which changes urgency), then plan SHA-256 or stronger (SHA-2) or SHA-3. | [FIPS-180-4], [FIPS-202] |
+| SHA-1 | Assess what the digest protects, then plan SHA-256 or stronger (SHA-2) or SHA-3. In a TLS or SSH cipher suite, this means retiring the suite. | [FIPS-180-4], [FIPS-202], [NIST-SHA1], [NIST-800-131A] (draft) |
+| DES, 3DES, RC4 | Plan replacement of DES, 3DES or RC4 with AES-256 in an authenticated mode; assess any stored data encrypted under the old cipher for re-encryption. | [FIPS-197], [NIST-800-131A] (draft) |
+| SSL, TLS 1.0 and 1.1 | Plan removal of SSL and TLS 1.0/1.1 in favour of TLS 1.3, then enable hybrid key exchange where both ends support it; confirm partner compatibility first. | [RFC-8996], [RFC-8446], [RFC-10024] |
+
+**Evidence.** Every row records the file, line, matched text, the SHA-256 of the bytes
+scanned, the scan time and tool version, and the SHA-256 of the config and the asset
+register. This run: tool 3.0.0, scanned 2026-09-23T16:13:27+00:00, config
+`1c2237d8d828a635...`, register `499197697a11c988...`. Rerunning
+`run_all.py` with the same inputs reproduces every row except the timestamp.
+
 ## Limitations
 
 * **The code scanner was validated on synthetic samples only.** Its accuracy on real code is unmeasured until it is graded on files a person has marked by hand: run `validate_scanner.py <folder> <expected.csv>` for precision and recall before trusting it.
@@ -262,6 +337,9 @@ could serve as the reference pattern for other systems.
 * Vendor ratings are computed from recorded answers by a stated rule. They are not an assessment of any vendor's actual controls.
 * Key exchange timings were measured on one workstation and show order of magnitude only.
 * Sources marked draft or unverified are cited as the stated direction of travel, not as settled requirements.
+* Classification in the migration register is only as good as the asset register. The toolkit never infers what data a file protects, so a missing or wrong entry gives a missing or wrong exposure.
+* Unclassified findings need owner review: until an owner maps the file to its data, the exposure of a quantum-vulnerable finding there is unknown.
+* Migration priority is a planning aid computed by a stated rule, not a risk rating from a certified assessment.
 
 ## Appendix A: Exposure chart
 
@@ -323,9 +401,9 @@ Medians of repeated runs; the order of magnitude matters, not the exact figure. 
 
 | Scheme | Public key (bytes) | Ciphertext (bytes) | Keygen (us) | Encapsulate (us) | Decapsulate (us) | Quantum-safe |
 |---|---|---|---|---|---|---|
-| X25519 (classical) | 32 | 32 | 77 | 147 | 85 | no (Shor) |
-| ML-KEM-768 (FIPS 203) | 1,184 | 1,088 | 445 | 135 | 144 | yes |
-| Hybrid X25519MLKEM768 | 1,216 | 1,120 | 496 | 392 | 340 | yes (either suffices) |
+| X25519 (classical) | 32 | 32 | 77 | 148 | 69 | no (Shor) |
+| ML-KEM-768 (FIPS 203) | 1,184 | 1,088 | 392 | 133 | 137 | yes |
+| Hybrid X25519MLKEM768 | 1,216 | 1,120 | 490 | 302 | 210 | yes (either suffices) |
 
 Hybrid key exchange is the construction standardized for the transition in TLS
 [RFC-10024]: an attacker must break both components, so X25519 still protects the
@@ -392,6 +470,12 @@ the timeline. RSA-2048 would need roughly 1,400 error-corrected logical qubits, 
 * **[NIST-800-131A] (draft)** NIST SP 800-131A Rev. 3 (initial public draft, Oct 2024): TDEA (3DES) disallowed as of 2024; SHA-1 disallowed after 31 Dec 2030. <https://csrc.nist.gov/pubs/sp/800/131/a/r3/ipd>
 * **[PCI-12-3-3]** PCI DSS v4.0 Requirement 12.3.3, as reproduced in the PCI SSC's official SAQ D for Merchants (the standard's own PDF could not be retrieved): cipher suites and protocols in use are documented and reviewed at least once every 12 months, including an up-to-date inventory, monitoring of their continued viability, and 'a documented strategy to respond to anticipated changes in cryptographic vulnerabilities'; a best practice until 31 March 2025, required thereafter. <https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-D-Merchant.docx>
 * **[NCSC-HYBRID]** UK NCSC, Next steps in preparing for post-quantum cryptography: 'If a PQ/T hybrid scheme is chosen, the NCSC recommends it is used as an interim measure', within a framework that allows a later move to PQC-only. <https://www.ncsc.gov.uk/whitepaper/next-steps-preparing-for-post-quantum-cryptography>
+* **[FIPS-197]** NIST FIPS 197 (updated 2023), Advanced Encryption Standard (AES), including 256-bit keys. <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197-upd1.pdf>
+* **[FIPS-180-4]** NIST FIPS 180-4, Secure Hash Standard: the SHA-2 family (SHA-256, SHA-384, SHA-512). <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf>
+* **[FIPS-202]** NIST FIPS 202, SHA-3 Standard: permutation-based hash functions. <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf>
+* **[RFC-8446]** RFC 8446, The Transport Layer Security (TLS) Protocol Version 1.3 (Aug 2018). <https://www.rfc-editor.org/rfc/rfc8446>
+* **[NIST-800-57-STRENGTH]** NIST SP 800-57 Part 1 Rev. 5, Table 2: 112-bit security strength corresponds to 2048-bit RSA (k = 2048) and finite-field DH/DSA (L = 2048). <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-57pt1r5.pdf>
+* **[CYCLONEDX-1.7]** CycloneDX 1.7 (Oct 2025; schema release 1.7.2, Sept 2026), also published as ECMA-424 2nd edition: cryptographic assets as BOM components (CBOM). <https://cyclonedx.org/docs/1.7/json/>
 * **[GIDNEY-2025]** Gidney, How to factor 2048 bit RSA integers with less than a million noisy qubits (arXiv 2505.15917, May 2025): about 1,400 logical qubits (1,399 in its cost table), under a million physical qubits at 0.1% gate error, under a week. <https://arxiv.org/abs/2505.15917>
 * **[GIDNEY-EKERA-2019]** Gidney and Ekera, How to factor 2048 bit RSA integers in 8 hours using 20 million noisy qubits (arXiv 1905.09749, 2019). <https://arxiv.org/abs/1905.09749>
 * **[BEAUREGARD-2003]** Beauregard, Circuit for Shor's algorithm using 2n+3 qubits (arXiv quant-ph/0205095): 2n + 3 qubits, which is 4,099 for n = 2048 by our arithmetic. <https://arxiv.org/abs/quant-ph/0205095>

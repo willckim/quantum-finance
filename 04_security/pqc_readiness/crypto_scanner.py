@@ -113,9 +113,11 @@ RULES: tuple[Rule, ...] = (
     Rule("CW-MD5", CW, "MD5 hash (collisions practical since 2004)", _rx(_L + r"MD5" + _R)),
     Rule("CW-SHA1", CW, "SHA-1 hash (collision shown 2017; NIST retiring it)",
          _rx(_L + r"SHA-?1(?![0-9])|" + _cs(r"-SHA") + r"(?=[\s:;,\"']|$)")),
+    # Long names first: the first alternative that matches wins, and "DES-EDE3-CBC" must
+    # be reported as 3DES, not as the bare "DES" at its start.
     Rule("CW-CIPHER", CW, "DES, 3DES or RC4 cipher",
-         _rx(_cs(_L + r"DES" + _R) + "|" + _L
-             + r"(3DES|DESede|TripleDES|DES-EDE3?|DES[-_](CBC|ECB)|RC4|ARCFOUR)" + _R)),
+         _rx(_L + r"(3DES|DESede|TripleDES|DES-EDE3?|DES[-_](CBC|ECB)|RC4|ARCFOUR)" + _R
+             + "|" + _cs(_L + r"DES" + _R))),
     Rule("CW-TLS-LEGACY", CW, "SSL or TLS 1.0 / 1.1 protocol version",
          _rx(_L + r"SSL[\s_-]?v?[23](?:[._]0)?(?![0-9.])"
              + r"|TLS[\s_-]?v?1[._-][01](?![0-9])|TLSv1(?![._-]?[0-9])"
@@ -171,6 +173,8 @@ class ScanResult:
     files_scanned: int = 0
     skipped: list[tuple[str, str]] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
+    # SHA-256 of the exact bytes each scanned file held when it was read (evidence).
+    file_sha256: dict[str, str] = field(default_factory=dict)
 
     def by_category(self) -> Counter[str]:
         return Counter(f.category for f in self.findings)
@@ -261,6 +265,7 @@ def scan(root: Path, root_label: str | None = None) -> ScanResult:
             result.skipped.append((rel, "binary file"))
             continue
         result.files_scanned += 1
+        result.file_sha256[rel] = hashlib.sha256(data).hexdigest()   # the bytes scanned
         for number, line in enumerate(data.decode("utf-8", errors="replace").splitlines(), 1):
             for rule, rule_id, category, matched in scan_line(line):
                 what = ("hardcoded key size (Shor ignores key length)"

@@ -64,6 +64,13 @@ LIMITATIONS_MORE = (
     "only.",
     "Sources marked draft or unverified are cited as the stated direction of travel, not "
     "as settled requirements.",
+    "Classification in the migration register is only as good as the asset register. The "
+    "toolkit never infers what data a file protects, so a missing or wrong entry gives a "
+    "missing or wrong exposure.",
+    "Unclassified findings need owner review: until an owner maps the file to its data, the "
+    "exposure of a quantum-vulnerable finding there is unknown.",
+    "Migration priority is a planning aid computed by a stated rule, not a risk rating from "
+    "a certified assessment.",
 )
 
 
@@ -243,7 +250,8 @@ def _references(text: str) -> str:
 
 def write_report(path: Path, cfg: Config, mosca: dict[str, list[Assessment]],
                  scan: ScanResult, kem: list[KemProfile], shor: dict,
-                 ratings: list[Rating], tracker: str, checks: Sequence[Check]) -> str:
+                 ratings: list[Rating], tracker: str, checks: Sequence[Check],
+                 register_part: str = "") -> str:
     """Write the report. Sentences that assert a verified fact consult `checks` first."""
     def verified(prefix: str) -> bool:
         found = [c for c in checks if c.name.startswith(prefix)]
@@ -253,7 +261,8 @@ def write_report(path: Path, cfg: Config, mosca: dict[str, list[Assessment]],
     body = "".join((
         _header(cfg, run_at, scan, tracker), _executive_summary(cfg, mosca, scan, kem, ratings),
         finding_1(cfg, mosca), finding_2(scan), finding_3(scan, kem), finding_4(scan),
-        finding_5(cfg, ratings, tracker), observation(scan), limitations_markdown(),
+        finding_5(cfg, ratings, tracker), observation(scan), register_part,
+        limitations_markdown(),
         "\n## Appendix A: Exposure chart\n\n![Mosca exposure timeline by data type across "
         "three planning scenarios](pqc_readiness_chart.png)\n",
         _appendix_b(scan, verified), _appendix_c(kem, verified), _appendix_d(cfg, shor)))
