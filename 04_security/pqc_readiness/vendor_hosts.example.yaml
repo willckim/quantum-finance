@@ -1,0 +1,17 @@
+# Template for vendor_hosts.local.yaml: copy it to that name and replace the entries.
+# The .local file is gitignored and must never be committed (tls_check.py refuses to run
+# if git would track it). Vendor names must match the vendor column of your tracker.
+#
+# Every host below is under .invalid, a top-level name reserved by RFC 2606 that never
+# resolves, so running this template contacts nobody.
+#
+#   py tls_check.py --vendors                      reads vendor_hosts.local.yaml
+#   PQC_VENDOR_OBSERVATIONS=vendor_observations.local.json py run_all.py
+
+delay_seconds: 3
+timeout_seconds: 15
+vendors:
+  - vendor: Vendor A (fictional payroll SaaS)
+    hosts: [portal.vendor-a.invalid]
+  - vendor: Vendor B (fictional cloud file storage)
+    hosts: [files.vendor-b.invalid, api.vendor-b.invalid]

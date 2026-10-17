@@ -1,0 +1,6 @@
+vendor,service,data_types_handled,questionnaire_sent,response_received,pqc_roadmap,algorithms_stated,hybrid_in_transit,hybrid_observed,observed_hosts,observed_at,claim_check,pqc_target_year,follow_up_date,notes
+Vendor A (fictional payroll SaaS),Payroll processing,Payroll records; Employee PII,2026-09-01,yes,yes,ML-KEM-768 planned,no,not observed,,,not observed,2028,2026-10-15,Roadmap summary received; no evidence yet
+Vendor B (fictional cloud file storage),Audit and deal file storage,Audit workpapers; M&A documents,2026-09-01,yes,yes,X25519MLKEM768 on all public endpoints,yes,not observed,,,not observed,2027,2026-12-01,States hybrid TLS is live; ask for a test report
+Vendor C (fictional virtual data room),Deal document hosting,M&A documents; Contracts,2026-09-01,yes,yes,ML-KEM and ML-DSA under evaluation,no,not observed,,,not observed,2032,2026-10-01,Target date is late for contract data; escalate
+Vendor D (fictional tax software),Tax return preparation,Tax records,2026-09-01,no,unknown,,unknown,not observed,,,not observed,,2026-09-30,No response after one reminder
+Vendor E (fictional banking portal),Online treasury banking,Bank credentials,2026-09-01,yes,yes,Hybrid key exchange planned,no,not observed,,,not observed,2030,2026-11-15,Credentials rotate yearly per vendor

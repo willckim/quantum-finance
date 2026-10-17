@@ -1,7 +1,7 @@
 {
-  "run_timestamp": "2026-09-23T11:13:20",
+  "run_timestamp": "2026-10-17T06:53:54",
   "automation": "pqc-readiness-toolkit",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "environment": {
     "python": "3.10.11",
     "qiskit": "2.4.1",
@@ -75,9 +75,9 @@
         "public_key_bytes": 32,
         "ciphertext_bytes": 32,
         "shared_secret_bytes": 32,
-        "keygen_us": 76.7,
-        "encap_us": 147.9,
-        "decap_us": 69.3,
+        "keygen_us": 134.2,
+        "encap_us": 246.3,
+        "decap_us": 109.5,
         "quantum_safe": "no (Shor)"
       },
       {
@@ -85,9 +85,9 @@
         "public_key_bytes": 1184,
         "ciphertext_bytes": 1088,
         "shared_secret_bytes": 32,
-        "keygen_us": 391.95,
-        "encap_us": 133.0,
-        "decap_us": 136.6,
+        "keygen_us": 640.7,
+        "encap_us": 232.8,
+        "decap_us": 137.0,
         "quantum_safe": "yes"
       },
       {
@@ -95,12 +95,23 @@
         "public_key_bytes": 1216,
         "ciphertext_bytes": 1120,
         "shared_secret_bytes": 64,
-        "keygen_us": 490.0,
-        "encap_us": 301.7,
-        "decap_us": 209.5,
+        "keygen_us": 778.4,
+        "encap_us": 484.05,
+        "decap_us": 332.7,
         "quantum_safe": "yes (either suffices)"
       }
-    ]
+    ],
+    "tls_demo_by_class": {
+      "hybrid PQC": 5,
+      "classical": 1
+    },
+    "vendor_claim_checks": {
+      "Vendor A (fictional payroll SaaS)": "not observed",
+      "Vendor B (fictional cloud file storage)": "not observed",
+      "Vendor C (fictional virtual data room)": "not observed",
+      "Vendor D (fictional tax software)": "not observed",
+      "Vendor E (fictional banking portal)": "not observed"
+    }
   },
   "output": {
     "report": "pqc_readiness_report.md",
@@ -108,17 +119,20 @@
     "questionnaire": "vendor_pqc_questionnaire.md",
     "register_csv": "migration_register.csv",
     "register_xlsx": "migration_register.xlsx",
-    "cbom": "pqc_cbom.cdx.json"
+    "cbom": "pqc_cbom.cdx.json",
+    "vendor_tracker_observed": "vendor_tracker_observed.csv"
   },
   "evidence": {
     "config_sha256": "1c2237d8d828a6351796d5b8067c193674ebf4ffd3c9c1cf15cc5fc9cddccc8c",
     "register_sha256": "499197697a11c988f6eee7a05ae816a05695f658ff3890ec25ffcaab4e38d090",
-    "scan_timestamp": "2026-09-23T16:13:27+00:00"
+    "scan_timestamp": "2026-10-17T11:54:07+00:00",
+    "tls_demo_observations": "tls_demo_observations.json",
+    "vendor_observations": null
   },
   "exceptions": [],
   "self_checks": {
-    "passed": 92,
-    "ran": 92,
+    "passed": 115,
+    "ran": 115,
     "failed": [],
     "not_run": []
   }

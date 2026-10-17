@@ -19,6 +19,12 @@
 - [x] Part 8: CycloneDX 1.7 CBOM, validated against the vendored 1.7.2 schema
 - [x] 92 self-checks; register and CBOM guards mutation-tested; a third independent review
       fixed formula injection, literal path matching, CBOM names, stable row ids
+- [x] Part 9: TLS post-quantum check (one handshake per listed host, port 443, offering
+      X25519MLKEM768; evidence per host), demo on six public endpoints, hybrid_observed
+      column next to the vendor's answer, mismatch flags both ways, Finding 6, three TLS
+      Limitations; real vendor hosts only in gitignored *.local.* files
+- [x] 115 self-checks; TLS parser, loop and claim guards each have a mutant control; live
+      handshakes to a local test server
 
 ## Next
 - [ ] Grade the scanner against a second, independent corpus (a public project with a
@@ -28,4 +34,6 @@
       curve findings can carry a CycloneDX algorithm family instead of "unknown"
 - [ ] Add a signature comparison (ECDSA vs ML-DSA-65) once key exchange is settled
 - [ ] Sensitivity table: minimum migration time at which each data type becomes exposed
-- [ ] Network-side inventory: read-only TLS handshake probe of a local test server
+- [ ] Record the TLS signature scheme the server used (Peer signature type), not only the
+      certificate's, once ML-DSA certificates appear in the wild
+- [ ] Add observed TLS groups to the CBOM as protocol components

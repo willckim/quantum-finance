@@ -2,16 +2,16 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:48427d77-7798-5160-93ec-313eacc3fde9",
+  "serialNumber": "urn:uuid:832c7c15-133c-5213-ba6e-48f79e2fe81e",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-09-23T16:13:27+00:00",
+    "timestamp": "2026-10-17T11:54:07+00:00",
     "tools": {
       "components": [
         {
           "type": "application",
           "name": "pqc-readiness-toolkit",
-          "version": "3.0.0"
+          "version": "3.1.0"
         }
       ]
     },

@@ -14,11 +14,11 @@ use the Condition / Criteria / Cause / Effect / Recommendation format for readab
 
 | | |
 |---|---|
-| **Assessed** | (1) 8 finance data types against Mosca's inequality; (2) code and configuration text in `sample_codebase/` (9 files) for cryptographic algorithm names; (3) sample_vendor_tracker.csv: vendor questionnaire answers as recorded; (4) key exchange sizes and timings on one workstation |
-| **Not assessed** | Live network endpoints, production systems, compiled software, databases, cloud-service settings, hardware security modules, key-management procedures, vendor controls beyond their recorded answers, and whether any control operates effectively |
+| **Assessed** | (1) 8 finance data types against Mosca's inequality; (2) code and configuration text in `sample_codebase/` (9 files) for cryptographic algorithm names; (3) sample_vendor_tracker.csv: vendor questionnaire answers as recorded; (4) key exchange sizes and timings on one workstation; (5) one TLS handshake to each public endpoint in `tls_hosts.yaml` (Appendix E, a demo; none is the organization's) and to any vendor endpoints supplied (Finding 6) |
+| **Not assessed** | The organization's own network endpoints, vendor endpoints not supplied for the TLS check, production systems, compiled software, databases, cloud-service settings, hardware security modules, key-management procedures, vendor controls beyond their recorded answers, and whether any control operates effectively |
 | **Default inputs** | From `pqc_config.yaml`: 8 of 8 shelf lives use default rules or assumptions (not organization policy); migration time 10 years [NCSC-TIMELINE], [NIST-IR-8547] (draft); quantum-arrival planning windows Pessimistic (2030-2032), Base (2033-2037), Optimistic (2038-2042) |
 | Assessment as of | 2026 |
-| Generated | 2026-09-23T11:13:29 by `run_all.py` in this folder (all figures reproducible) |
+| Generated | 2026-10-17T06:54:09 by `run_all.py` in this folder (all figures reproducible) |
 
 ## Executive summary
 
@@ -38,8 +38,9 @@ windows instead.
   not confirmed deployments.
 * **Vendors.** The recorded answers of 5 vendors produce **2 High**
   ratings under the stated rule (Finding 5); answers are claims until evidenced.
+* **Vendor claims vs handshakes.** No vendor endpoint was checked in this run, so recorded hybrid claims remain uncorroborated (Finding 6).
 * **Cost of the fix.** On one workstation, hybrid key exchange took 2,336 bytes and
-  about 1.0 ms per handshake (Appendix C), which suggests computation and bandwidth
+  about 1.6 ms per handshake (Appendix C), which suggests computation and bandwidth
   are unlikely to be the main barriers.
 
 | # | Finding | Rating |
@@ -49,10 +50,12 @@ windows instead.
 | 3 | Quantum-vulnerable algorithms are hardcoded across applications | Medium |
 | 4 | No maintained cryptographic inventory or migration plan | Medium |
 | 5 | Vendor post-quantum readiness is not yet evidenced | High |
+| 6 | Vendor hybrid key exchange claims, checked against observed handshakes | Not assessed |
 
 Ratings are illustrative priorities: **High** = known weakness or exposure that migration
 speed alone cannot remove, address within 90 days; **Medium** = exposure that grows with
-delay, plan within 6 months; **Low** = improvement.
+delay, plan within 6 months; **Low** = improvement; **Not assessed** = no evidence in this
+run to rate.
 
 ## Finding 1: Long-lived financial records may be exposed to harvest-now, decrypt-later attacks
 
@@ -161,7 +164,7 @@ attack needs, which raises the bar without removing the threat.
 **Recommendation.**
 1. Centralize algorithm selection in configuration or a shared library.
 2. Migrate key exchange first, since it is what harvest-now, decrypt-later targets, using
-   the hybrid. Measured on one workstation: 2,336 bytes and about 1.0 ms per
+   the hybrid. Measured on one workstation: 2,336 bytes and about 1.6 ms per
    handshake (Appendix C).
 3. Plan signatures (RSA, ECDSA, DSA) to move to ML-DSA on the NIST schedule.
 
@@ -245,6 +248,50 @@ outside the organization's visibility. The code scanner cannot see it (see Limit
 
 **Management response.** *[To be completed by the process owner.]*
 
+## Finding 6: Vendor hybrid key exchange claims, checked against observed handshakes
+
+**Rating: Not assessed**
+
+**Condition.** No vendor endpoint was checked in this run. Real vendor hostnames are kept out of the repository (in the gitignored `vendor_hosts.local.yaml`), and the 5 vendors here are fictional, so none is mapped to a real site. The comparison rule is exercised on fixture observations in the self-checks, and Appendix E shows the handshake check on public endpoints.
+
+| Vendor | Hybrid claimed (Q5) | Hybrid observed | Hosts checked | Observed (UTC) | Check |
+|---|---|---|---|---|---|
+| Vendor A (fictional payroll SaaS) | no | not observed | none listed | n/a | not observed |
+| Vendor B (fictional cloud file storage) | yes | not observed | none listed | n/a | not observed |
+| Vendor C (fictional virtual data room) | no | not observed | none listed | n/a | not observed |
+| Vendor D (fictional tax software) | unknown | not observed | none listed | n/a | not observed |
+| Vendor E (fictional banking portal) | no | not observed | none listed | n/a | not observed |
+
+**Criteria.** Hybrid key exchange in TLS 1.3 is visible from outside: the server's chosen
+group appears in the handshake [RFC-8446], [RFC-10024]. CISA, NSA and NIST encourage
+organizations to engage their technology vendors about quantum-readiness roadmaps
+[CISA-VENDORS], and the G7 Cyber Expert Group suggests financial entities
+inventory quantum-vulnerable technology at key third parties
+[G7-CEG-2024-THIRD-PARTIES]. A vendor's statement is a claim until evidenced; the
+questionnaire asks for evidence (Q12).
+
+**Cause.** Likely cause, to be confirmed: vendor answers have been recorded without
+independent corroboration, and the endpoints that carry the organization's data have not
+been listed for checking.
+
+**Effect.** A vendor rated on a hybrid claim (Finding 5) may in fact negotiate classical
+key exchange on connections carrying the data, so its harvest-now, decrypt-later
+exposure would be understated. Where hybrid is observed but not claimed, the tracker
+understates the vendor.
+
+**Recommendation.**
+1. List each vendor's data-carrying hostnames in `vendor_hosts.local.yaml` (never
+   committed), run `py tls_check.py --vendors`, and rerun the assessment with
+   `PQC_VENDOR_OBSERVATIONS=vendor_observations.local.json`. That run writes its report
+   and log to gitignored `*.local.*` files, because they name the vendors' hosts.
+2. For each contradicted claim, ask the vendor which endpoints the claim covers, and rate
+   the vendor as if `hybrid_in_transit` were "no" until it is evidenced.
+3. Update the tracker where hybrid is observed but not claimed.
+4. Treat a consistent result as one piece of evidence about one endpoint, not proof
+   about the vendor's environment.
+
+**Management response.** *[To be completed by the process owner.]*
+
 ## Positive observation
 
 The scanner reported 9 PQC-ready usages in `batch_jobs/archive_encrypt.py`:
@@ -323,7 +370,7 @@ assessment. No row is Low: at the 10-year migration pace, every registered data 
 
 **Evidence.** Every row records the file, line, matched text, the SHA-256 of the bytes
 scanned, the scan time and tool version, and the SHA-256 of the config and the asset
-register. This run: tool 3.0.0, scanned 2026-09-23T16:13:27+00:00, config
+register. This run: tool 3.1.0, scanned 2026-10-17T11:54:07+00:00, config
 `1c2237d8d828a635...`, register `499197697a11c988...`. Rerunning
 `run_all.py` with the same inputs reproduces every row except the timestamp.
 
@@ -340,6 +387,9 @@ register. This run: tool 3.0.0, scanned 2026-09-23T16:13:27+00:00, config
 * Classification in the migration register is only as good as the asset register. The toolkit never infers what data a file protects, so a missing or wrong entry gives a missing or wrong exposure.
 * Unclassified findings need owner review: until an owner maps the file to its data, the exposure of a quantum-vulnerable finding there is unknown.
 * Migration priority is a planning aid computed by a stated rule, not a risk rating from a certified assessment.
+* **The TLS check only sees the public front door.** Many sites sit behind a CDN, so a result may reflect the CDN, not the vendor's own systems. Each result is one handshake, from one network location, at one moment, and certificate chain trust is not assessed.
+* **It says nothing about data at rest, internal connections or backends.** It observes key exchange on one listed connection, nothing behind it.
+* **A post-quantum handshake today does not prove a vendor's whole environment is quantum-safe.** It is one piece of evidence about one endpoint; the questionnaire, contracts and independent evidence (Q12) still carry the rest.
 
 ## Appendix A: Exposure chart
 
@@ -401,9 +451,9 @@ Medians of repeated runs; the order of magnitude matters, not the exact figure. 
 
 | Scheme | Public key (bytes) | Ciphertext (bytes) | Keygen (us) | Encapsulate (us) | Decapsulate (us) | Quantum-safe |
 |---|---|---|---|---|---|---|
-| X25519 (classical) | 32 | 32 | 77 | 148 | 69 | no (Shor) |
-| ML-KEM-768 (FIPS 203) | 1,184 | 1,088 | 392 | 133 | 137 | yes |
-| Hybrid X25519MLKEM768 | 1,216 | 1,120 | 490 | 302 | 210 | yes (either suffices) |
+| X25519 (classical) | 32 | 32 | 134 | 246 | 110 | no (Shor) |
+| ML-KEM-768 (FIPS 203) | 1,184 | 1,088 | 641 | 233 | 137 | yes |
+| Hybrid X25519MLKEM768 | 1,216 | 1,120 | 778 | 484 | 333 | yes (either suffices) |
 
 Hybrid key exchange is the construction standardized for the transition in TLS
 [RFC-10024]: an attacker must break both components, so X25519 still protects the
@@ -435,6 +485,25 @@ schedule):
 
 **Why the threat is taken seriously.** A toy Shor's algorithm in this toolkit factored 15 = 3 x 5 from a quantum-measured period of 4. That demonstrates the mechanism, not
 the timeline. RSA-2048 would need roughly 1,400 error-corrected logical qubits, backed by just under a million physical qubits at a 0.1% error rate, running for under a week (Gidney, 2025). Six years earlier the estimate was 20 million physical qubits (Gidney and Ekera, 2019): the threat moves with algorithm research, not only with hardware. [GIDNEY-2025], [GIDNEY-EKERA-2019]
+
+## Appendix E: TLS key exchange observed at public endpoints (demo)
+
+A demonstration of `tls_check.py` on the public endpoints listed in
+`tls_hosts.yaml`; none belongs to the organization or its vendors. Each host received one
+ordinary TLS handshake on port 443, 3 seconds apart, offering `*X25519MLKEM768:*X25519:secp256r1:secp384r1`
+(the hybrid first) [RFC-10024]; nothing else was sent. Each row records what the
+endpoint that answered (often a CDN) negotiated at that moment, as observed with
+OpenSSL 3.6.0 1 Oct 2025. It is not an assessment of any organization.
+Evidence per row, including the certificate's SHA-256, is in `tls_demo_observations.json`.
+
+| Host | TLS | Key exchange group | Class | Certificate key | Certificate signature | Observed (UTC) |
+|---|---|---|---|---|---|---|
+| `www.ietf.org` | TLSv1.3 | X25519MLKEM768 | hybrid PQC | EC secp256r1 256 | ecdsa-with-SHA384 | 2026-10-17T11:53:16+00:00 |
+| `www.rfc-editor.org` | TLSv1.3 | X25519MLKEM768 | hybrid PQC | EC secp256r1 256 | ecdsa-with-SHA256 | 2026-10-17T11:53:20+00:00 |
+| `www.w3.org` | TLSv1.3 | X25519MLKEM768 | hybrid PQC | EC secp256r1 256 | ecdsa-with-SHA256 | 2026-10-17T11:53:24+00:00 |
+| `www.python.org` | TLSv1.3 | X25519MLKEM768 | hybrid PQC | RSA 2048 | sha256WithRSAEncryption | 2026-10-17T11:53:29+00:00 |
+| `www.nist.gov` | TLSv1.3 | X25519MLKEM768 | hybrid PQC | EC secp256r1 256 | ecdsa-with-SHA384 | 2026-10-17T11:53:34+00:00 |
+| `www.openssl.org` | TLSv1.3 | X25519 | classical | RSA 2048 | sha256WithRSAEncryption | 2026-10-17T11:53:38+00:00 |
 
 ## References
 

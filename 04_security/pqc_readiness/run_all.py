@@ -32,9 +32,14 @@ WHAT EACH PART DOES, AND WHERE IT LIVES
             remediation.py         rule), remediation and evidence. CSV and xlsx outputs
             register_outputs.py    via register_outputs.py.
     Part 8  cbom.py              The same inventory as a CycloneDX 1.7 CBOM, schema-validated.
+    Part 9  tls_check.py         WHAT A VENDOR'S FRONT DOOR NEGOTIATES. One TLS handshake per
+            tls_selfcheck.py     listed host (run separately: it is the only part that
+            vendor_observed.py   touches the network). run_all.py reads its evidence offline,
+            report_tls.py        compares vendor claims with it and grades the checker.
     Part 5  audit_report.py      THE DELIVERABLE. pqc_readiness_report.md (a readiness
             report_findings.py   assessment in audit-finding format, with the register
             report_register.py   section) and pqc_readiness_chart.png.
+            report_tls.py
             exposure_chart.py
 
     Inputs  pqc_config.yaml      Retention periods, migration time, scenario windows,
@@ -58,7 +63,10 @@ Point it at your own inputs without editing code:
     PQC_VENDOR_TRACKER=<your_tracker.csv>  vendor answers (columns as in the template)
     PQC_SCAN_ROOT=<folder>                 code to scan (read-only)
     PQC_ASSET_REGISTER=<your_register.yaml> which data each system or path handles
-Checks tied to the synthetic samples then report NOT RUN rather than PASS.
+    PQC_VENDOR_OBSERVATIONS=<file.json>    vendor handshakes from `tls_check.py --vendors`
+Checks tied to the synthetic samples then report NOT RUN rather than PASS. With a custom
+tracker or vendor observations, the report and run log go to pqc_readiness_report.local.md
+and pqc_run_log.local.json (gitignored), since they name real vendors and hosts.
 """
 
 from __future__ import annotations
@@ -67,6 +75,7 @@ import json
 import os
 import re
 import sys
+from collections import Counter
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -77,7 +86,8 @@ import qiskit
 import qiskit_aer
 
 from asset_register import RegisterError, load_register, register_checks, unused_patterns
-from audit_report import DEFAULTS_NOTE, LIMITATION_STATEMENTS, gating_check, write_report
+from audit_report import (DEFAULTS_NOTE, LIMITATION_STATEMENTS, TLS_LIMITATIONS, gating_check,
+                          write_report)
 from cbom import part8_cbom
 from common import (CBOM_JSON, CHART_PNG, HERE, REGISTER_CSV, REGISTER_XLSX, REPORT_MD,
                     RUN_LOG_JSON, TOOL_VERSION, Check, force_utf8_console, not_run,
@@ -91,11 +101,18 @@ from mosca import SAFE, part2_mosca
 from register_outputs import output_checks, write_csv, write_xlsx
 from remediation import remediation_checks
 from report_register import register_section
+from report_tls import TlsEvidence
 from shor_toy import part1_shor
 from sources import SOURCES, VERIFIED
+from tls_check import DEMO_OBSERVATIONS, HOSTS_YAML, ObservationsError, git_ignored, load_hosts
+from tls_selfcheck import part9_tls, private_run
 from validate_scanner import part3b_validation
+from vendor_observed import claims_rating
 from vendor_review import QUESTIONNAIRE_MD, SAMPLE_TRACKER, TrackerError, part6_vendors
 
+# A run on real vendor data writes the report and log here instead (gitignored).
+REPORT_LOCAL = HERE / "pqc_readiness_report.local.md"
+RUN_LOG_LOCAL = HERE / "pqc_run_log.local.json"
 EM_DASH = chr(0x2014)      # banned in every output; written as a code point, not the glyph
 README = HERE.parent.parent / "README.md"
 FINDING_ATTRIBUTES = ("**Condition.**", "**Criteria.**", "**Cause.**", "**Effect.**",
@@ -161,8 +178,8 @@ def report_checks(text: str) -> list[Check]:
     leaks = LEAK.findall(text)
     limits = text.split("\n## Limitations", 1)[-1] if "\n## Limitations" in text else ""
     checks = [
-        Check("Report: 5 findings, each with Condition/Criteria/Cause/Effect/Recommendation",
-              len(findings) == 5 and all(complete), f"{sum(complete)}/{len(findings)} complete"),
+        Check("Report: 6 findings, each with Condition/Criteria/Cause/Effect/Recommendation",
+              len(findings) == 6 and all(complete), f"{sum(complete)}/{len(findings)} complete"),
         Check("Report: every bracketed citation resolves to the source registry",
               bool(cited) and not unknown, f"{len(cited)} sources cited"
               + (f"; UNKNOWN {unknown}" if unknown else "")),
@@ -176,6 +193,8 @@ def report_checks(text: str) -> list[Check]:
               and "## Scope and status" in text and "Not assessed" in text),
         Check("Report: Limitations section carries the four required statements",
               all(s in limits for s in LIMITATION_STATEMENTS)),
+        Check("Report: Limitations section carries the three TLS check statements",
+              all(s in limits for s in TLS_LIMITATIONS)),
         Check("Report: no machine paths, emails or em dashes in the output",
               not leaks and EM_DASH not in text, f"{len(leaks)} leaks {leaks[:3]}"),
         Check("Report: the leak check catches a path, a share, a home folder and an email",
@@ -187,19 +206,63 @@ def report_checks(text: str) -> list[Check]:
               CHART_PNG.is_file() and CHART_PNG.stat().st_size > 20_000,
               f"{CHART_PNG.stat().st_size:,} bytes" if CHART_PNG.is_file() else "missing"),
     ]
-    name = "README: carries the same four Limitations statements as the report"
+    name = "README: carries the same four core and three TLS Limitations statements"
     if README.is_file():
         readme = README.read_text(encoding="utf-8")
-        missing = [s for s in LIMITATION_STATEMENTS if s not in readme]
+        missing = [s for s in LIMITATION_STATEMENTS + TLS_LIMITATIONS if s not in readme]
         checks.append(Check(name, not missing, f"missing {missing}" if missing else ""))
     else:
         checks.append(not_run(name, "repository README not found"))
     return checks
 
 
+def tls_report_check(text: str, tls: TlsEvidence) -> Check:
+    """Finding 6 shows the computed rating and every vendor's outcome; Appendix E shows
+    one row per demo host, or says it was not included."""
+    six = text.split("\n## Finding 6", 1)[-1].split("\n## ", 1)[0]
+    appendix = text.split("\n## Appendix E", 1)[-1].split("\n## ", 1)[0]
+    problems = [] if f"**Rating: {claims_rating(tls.claims)}**" in six else ["rating"]
+    problems += [c.vendor for c in tls.claims
+                 if f"| {c.vendor} | {c.claimed} | {c.observed} |" not in six]
+    if tls.demo:
+        problems += [o.host for o in tls.demo if f"| `{o.host}` |" not in appendix]
+    elif "Not included in this run" not in appendix:
+        problems.append("appendix E claims evidence it does not have")
+    return Check("Report: Finding 6 shows the computed rating and each vendor's outcome; "
+                 "Appendix E one row per demo host", "\n## Finding 6" in text and not problems,
+                 f"missing {problems}" if problems else f"{len(tls.claims)} vendors")
+
+
+def output_paths(tracker: Path, vendor_obs: Path | None) -> tuple[Path, Path]:
+    """(report, run log). Both name vendors and Finding 6 lists their hosts, so a run on
+    real vendor data must never write them to the tracked file names."""
+    if private_run(tracker, vendor_obs):
+        return REPORT_LOCAL, RUN_LOG_LOCAL
+    return REPORT_MD, RUN_LOG_JSON
+
+
+def private_output_check(tracker: Path, vendor_obs: Path | None, hosts: list[str]) -> Check:
+    name = "Outputs: runs on real vendor data write the report and log to gitignored names"
+    custom, obs = HERE / "my_tracker.csv", HERE / "vendor_observations.local.json"
+    cases = {"sample": (output_paths(SAMPLE_TRACKER, None), (REPORT_MD, RUN_LOG_JSON)),
+             "custom tracker": (output_paths(custom, None), (REPORT_LOCAL, RUN_LOG_LOCAL)),
+             "observations": (output_paths(SAMPLE_TRACKER, obs), (REPORT_LOCAL, RUN_LOG_LOCAL))}
+    wrong = [k for k, (got, want) in cases.items() if got != want]
+    ignored = [git_ignored(path) for path in (REPORT_LOCAL, RUN_LOG_LOCAL, REPORT_MD)]
+    if None in ignored:
+        return not_run(name, "git could not be asked")
+    if ignored != [True, True, False]:
+        wrong.append(f"ignored {ignored}")
+    tracked = " ".join(path.read_text(encoding="utf-8") for path in (REPORT_MD, RUN_LOG_JSON)
+                       if path.is_file())
+    wrong += [f"{h} in a tracked output" for h in hosts if h in tracked]
+    return Check(name, not wrong, f"wrong: {wrong}" if wrong else f"{len(cases)} cases")
+
+
 # ---- audit trail -----------------------------------------------------------------------
 def write_run_log(run_at: str, cfg, scan, mosca, kem, ratings, tracker: Path,
-                  checks: list[Check], rows, meta) -> None:
+                  checks: list[Check], rows, meta, tls: TlsEvidence, observed: Path,
+                  report: Path, log_path: Path) -> None:
     """What was read, what rules ran, what was produced, what was skipped."""
     log = {
         "run_timestamp": run_at, "automation": "pqc-readiness-toolkit", "version": TOOL_VERSION,
@@ -219,20 +282,27 @@ def write_run_log(run_at: str, cfg, scan, mosca, kem, ratings, tracker: Path,
                        "vendor_ratings": {r.vendor.name: r.level for r in ratings},
                        "register_rows_by_priority": {lvl: sum(r.priority == lvl for r in rows)
                                                      for lvl in cfg.priority_levels},
-                       "kem_profiles": [asdict(p) for p in kem]},
-        "output": {"report": REPORT_MD.name, "chart": CHART_PNG.name,
+                       "kem_profiles": [asdict(p) for p in kem],
+                       "tls_demo_by_class": (dict(Counter(o.key_exchange_class or o.status
+                                                          for o in tls.demo))
+                                             if tls.demo else "not included"),
+                       "vendor_claim_checks": {c.vendor: c.outcome for c in tls.claims}},
+        "output": {"report": report.name, "chart": CHART_PNG.name,
                    "questionnaire": QUESTIONNAIRE_MD.name, "register_csv": REGISTER_CSV.name,
-                   "register_xlsx": REGISTER_XLSX.name, "cbom": CBOM_JSON.name},
+                   "register_xlsx": REGISTER_XLSX.name, "cbom": CBOM_JSON.name,
+                   "vendor_tracker_observed": observed.name},
         "evidence": {"config_sha256": meta.config_sha256,
                      "register_sha256": meta.register_sha256,
-                     "scan_timestamp": meta.scan_timestamp},
+                     "scan_timestamp": meta.scan_timestamp,
+                     "tls_demo_observations": DEMO_OBSERVATIONS.name if tls.demo else None,
+                     "vendor_observations": tls.source or None},
         "exceptions": [{"file": p, "reason": r} for p, r in scan.skipped],
         "self_checks": {"passed": sum(c.passed for c in checks if not c.not_run),
                         "ran": sum(not c.not_run for c in checks),
                         "failed": [c.name for c in checks if not c.passed and not c.not_run],
                         "not_run": [c.name for c in checks if c.not_run]},
     }
-    RUN_LOG_JSON.write_text(json.dumps(log, indent=2) + "\n", encoding="utf-8")
+    log_path.write_text(json.dumps(log, indent=2) + "\n", encoding="utf-8")
 
 
 def register_stage(cfg, scan):
@@ -280,6 +350,17 @@ def main() -> int:
         print(f"VENDOR TRACKER ERROR ({tracker.name}): {exc}")
         return 2
     checks += more
+    obs_env = os.environ.get("PQC_VENDOR_OBSERVATIONS", "").strip()
+    vendor_obs = Path(obs_env).resolve() if obs_env else None
+    try:
+        claims, demo, observed, more = part9_tls(tracker, [r.vendor for r in ratings],
+                                                 vendor_obs)
+    except ObservationsError as exc:
+        print(f"VENDOR OBSERVATIONS ERROR: {exc}")
+        return 2
+    checks += more
+    tls = TlsEvidence(tuple(claims), tuple(demo) if demo else None,
+                      vendor_obs.name if vendor_obs else "", load_hosts(HOSTS_YAML).delay_seconds)
     try:
         rows, meta, register_text, more = register_stage(cfg, scan)
     except RegisterError as exc:
@@ -289,12 +370,17 @@ def main() -> int:
 
     section("PART 5 -- READINESS REPORT AND CHART")
     render_chart(cfg, mosca, CHART_PNG)
-    text = write_report(REPORT_MD, cfg, mosca, scan, kem, shor, ratings, tracker.name, checks,
-                        register_text)
-    checks += report_checks(text) + [register_section_check(text, rows, cfg.priority_levels)]
-    write_run_log(run_at, cfg, scan, mosca, kem, ratings, tracker, checks, rows, meta)
-    for path in (REPORT_MD, CHART_PNG, QUESTIONNAIRE_MD, REGISTER_CSV, REGISTER_XLSX,
-                 CBOM_JSON, RUN_LOG_JSON):
+    report, log_path = output_paths(tracker, vendor_obs)
+    text = write_report(report, cfg, mosca, scan, kem, shor, ratings, tracker.name, checks,
+                        register_text, tls)
+    loaded_hosts = [h for c in claims for h in c.hosts]
+    checks += report_checks(text) + [register_section_check(text, rows, cfg.priority_levels),
+                                     tls_report_check(text, tls),
+                                     private_output_check(tracker, vendor_obs, loaded_hosts)]
+    write_run_log(run_at, cfg, scan, mosca, kem, ratings, tracker, checks, rows, meta, tls,
+                  observed, report, log_path)
+    for path in (report, CHART_PNG, QUESTIONNAIRE_MD, REGISTER_CSV, REGISTER_XLSX,
+                 CBOM_JSON, observed, log_path):
         print(f"  wrote {path.relative_to(HERE)}")
     return 0 if print_checks(checks) else 1
 

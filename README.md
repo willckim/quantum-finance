@@ -78,12 +78,15 @@ The 13.3% figure is a property of the idealized model, not a claim about real de
 | 6 | `vendor_review.py` | What the scanner cannot see: a 12-question vendor PQC questionnaire, a vendor tracker template, five fictional vendors, and vendor risk ratings computed by a stated rule. |
 | 7 | `migration_register.py`, `asset_register.py`, `priority_rules.py`, `remediation.py` | What to do first: one prioritized row per finding (asset, detected cryptography, location, data classification, exposure, priority, remediation, evidence), in `migration_register.xlsx` and `migration_register.csv`. |
 | 8 | `cbom.py` | The same crypto inventory as a CycloneDX 1.7 Cryptography Bill of Materials (`pqc_cbom.cdx.json`), validated against the official 1.7.2 schema. |
+| 9 | `tls_check.py`, `vendor_observed.py`, `tls_selfcheck.py`, `report_tls.py` | What a vendor's front door actually negotiates: one TLS handshake per listed host, offering the hybrid X25519MLKEM768 alongside classical groups. The result goes in a `hybrid_observed` column next to the vendor's answer, and Finding 6 flags any mismatch. |
 
 **The migration register.** Classification comes only from [`asset_register.yaml`](04_security/pqc_readiness/asset_register.yaml), where people map systems and paths to the data they handle. The tool never infers it: a finding in a file no entry covers is "Unclassified: needs owner review". Exposure comes from the Mosca results for the file's data (the longest shelf life when a file maps to several). Priority comes from a stated first-match rule in `pqc_config.yaml` that anyone can check by hand. Remediation targets cite their standards, with drafts labeled. Every row carries the evidence to reproduce it: file hash, line, matched text, scan time, tool version, and the hashes of the config and the register.
 
-**Start here.** Open [`pqc_readiness_report.md`](04_security/pqc_readiness/pqc_readiness_report.md) for the output, then [`run_all.py`](04_security/pqc_readiness/run_all.py), whose opening comment lists the modules in reading order. Every run prints 92 self-checks, each graded against an independent source (a standard's parameter table, a brute-force calculation, a hand-worked table or a planted answer key). Checks that cannot see their subject report NOT RUN, never PASS.
+**The TLS post-quantum check.** Vendors' answers about hybrid key exchange are claims; the key exchange group a server chooses is visible to anyone who connects. `py tls_check.py` makes one ordinary TLS handshake (as a browser would) to each host in [`tls_hosts.yaml`](04_security/pqc_readiness/tls_hosts.yaml), on port 443 only, a few seconds apart. It records the TLS version, the negotiated group (hybrid PQC or classical), the certificate key type and size, the signature algorithm, the timestamp and the tool version, in the migration register's evidence style. It contacts only the listed hosts, never retries, and sends nothing beyond the handshake. A failed handshake is recorded as failed, never as classical. The committed demo ran on six public standards and infrastructure sites (Appendix E of the report). Real vendor hostnames go in `vendor_hosts.local.yaml`, which is gitignored, and the checker refuses to run if git would track it. `run_all.py` itself never touches the network: it reads the recorded evidence and grades the checker offline, including two live handshakes to a local test server. Live checks need an OpenSSL build that can offer ML-KEM groups (3.5 or later). Python's `ssl` module cannot yet, so the checker drives `openssl s_client` and finds a capable build by testing what it can do (`PQC_OPENSSL` overrides).
 
-**Use your own inputs.** Every retention period, the migration time and the scenario windows live in [`pqc_config.yaml`](04_security/pqc_readiness/pqc_config.yaml), with a comment on each field and its default source. The defaults reflect general US federal rules: replace them with your organization's records retention policy before relying on results. Point the run at your own files with `PQC_CONFIG`, `PQC_ASSET_REGISTER`, `PQC_VENDOR_TRACKER` and `PQC_SCAN_ROOT`. Before trusting the scanner on your code, mark the expected findings in a CSV and run `py validate_scanner.py <folder> <expected.csv>`.
+**Start here.** Open [`pqc_readiness_report.md`](04_security/pqc_readiness/pqc_readiness_report.md) for the output, then [`run_all.py`](04_security/pqc_readiness/run_all.py), whose opening comment lists the modules in reading order. Every run prints 115 self-checks, each graded against an independent source (a standard's parameter table, a brute-force calculation, a hand-worked table or a planted answer key). Checks that cannot see their subject report NOT RUN, never PASS.
+
+**Use your own inputs.** Every retention period, the migration time and the scenario windows live in [`pqc_config.yaml`](04_security/pqc_readiness/pqc_config.yaml), with a comment on each field and its default source. The defaults reflect general US federal rules: replace them with your organization's records retention policy before relying on results. Point the run at your own files with `PQC_CONFIG`, `PQC_ASSET_REGISTER`, `PQC_VENDOR_TRACKER`, `PQC_VENDOR_OBSERVATIONS` and `PQC_SCAN_ROOT`. Before trusting the scanner on your code, mark the expected findings in a CSV and run `py validate_scanner.py <folder> <expected.csv>`.
 
 **What the chart shows.** [`pqc_readiness_chart.png`](04_security/pqc_readiness/pqc_readiness_chart.png) has one panel per planning scenario. Each bar starts at the assessment year and runs for the migration time plus the data's shelf life. The gray band is the scenario's window, the black line is the planning year used, and red is how many years the data would stay sensitive after it. With the default inputs and a 10-year migration, all 8 data types are exposed in the 2030-2032 and 2033-2037 windows, and 5 of 8 in the 2038-2042 window. M&A documents (18-year shelf life) are exposed in every scenario even if migration finished today. Bank credentials use a labeled assumption (a NIST key cryptoperiod), not a retention rule.
 
@@ -98,6 +101,9 @@ The 13.3% figure is a property of the idealized model, not a claim about real de
 * **Classification is only as good as the asset register.** The tool never infers what data a file protects, so a missing or wrong entry gives a missing or wrong exposure.
 * **Unclassified findings need owner review** before they can be prioritized by exposure.
 * **Priority is a planning aid**, computed by a stated rule, not a risk rating from a certified assessment.
+* **The TLS check only sees the public front door.** Many sites sit behind a CDN, so a result may reflect the CDN, not the vendor's own systems.
+* **It says nothing about data at rest, internal connections or backends.**
+* **A post-quantum handshake today does not prove a vendor's whole environment is quantum-safe.** It is one piece of evidence about one endpoint at one moment.
 * Factoring 15 demonstrates the mechanism, not the threat level. Retention periods understate how long data must stay secret. NIST IR 8547 and SP 800-131A Rev. 3 are still drafts, and the report labels them as such wherever they are cited.
 
 ## How to run
@@ -113,8 +119,12 @@ python 03_finance/quantum_monte_carlo.py
 # 3. Run the whole error-correction walkthrough (about 35 seconds)
 python 02_algorithms/error_correction/run_all.py
 
-# 4. Run the PQC readiness toolkit (about 15 seconds; writes the report, chart, questionnaire and run log)
+# 4. Run the PQC readiness toolkit (about 20 seconds; writes the report, chart, questionnaire and run log)
 cd 04_security/pqc_readiness && python run_all.py
+
+# 5. Optional, and the only step that touches the network: one TLS handshake per host in
+#    tls_hosts.yaml (needs OpenSSL 3.5+), then rerun step 4 to report it
+python tls_check.py
 ```
 
 The finance scripts that generate charts write their `.png` next to themselves in `03_finance/`, and `run_all.py` writes `error_correction_threshold.png` next to itself. All of them use a non-interactive matplotlib backend, so they save the file without opening a window.
@@ -134,7 +144,7 @@ Note: `quantum_forecaster.py` additionally requires `scikit-learn` and `qiskit-m
 
 All quantum circuits run on local simulators (Qiskit Aer and statevector). No quantum hardware or cloud account is required.
 
-`04_security/pqc_readiness/` was built and verified on Python 3.10.11 with Qiskit 2.4.1, Qiskit Aer 0.17.2, NumPy 1.26.4 and cryptography 48.0.0. It needs cryptography 48 or later (the first release whose wheels expose ML-KEM through OpenSSL) and PyYAML for the config file; both were already installed, so nothing new was installed for it.
+`04_security/pqc_readiness/` was built and verified on Python 3.10.11 with Qiskit 2.4.1, Qiskit Aer 0.17.2, NumPy 1.26.4 and cryptography 48.0.0. It needs cryptography 48 or later (the first release whose wheels expose ML-KEM through OpenSSL) and PyYAML for the config file; both were already installed, so nothing new was installed for it. The TLS check used an OpenSSL 3.6.0 build that was already on the machine (Python's own `ssl` there links OpenSSL 1.1.1 to 3.0, which cannot offer ML-KEM groups); nothing was installed for it either.
 
 ## About
 

@@ -1,0 +1,19 @@
+# Public endpoints for the TLS post-quantum check demo (py tls_check.py).
+#
+# One ordinary TLS handshake per host on port 443, delay_seconds apart, nothing else sent.
+# Only the hosts listed here are contacted: the checker does not crawl, discover
+# subdomains or follow redirects. Results describe the endpoint that answered at that
+# moment (often a CDN), not the operator's wider systems.
+#
+# Real vendor hostnames never go here. They go in vendor_hosts.local.yaml, which is
+# gitignored (see vendor_hosts.example.yaml).
+
+delay_seconds: 3       # pause between hosts (1-60)
+timeout_seconds: 15    # per handshake (5-60); a timeout is recorded, never retried
+hosts:
+  - www.ietf.org
+  - www.rfc-editor.org
+  - www.w3.org
+  - www.python.org
+  - www.nist.gov
+  - www.openssl.org

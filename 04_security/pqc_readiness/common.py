@@ -37,7 +37,7 @@ SHOR_SHOTS = 2_048                       # shots for the sampled Shor run
 KEM_TIMING_ROUNDS = 1_000                # timed repetitions per key-exchange operation
 
 # Recorded in every register row and in the CBOM, so a rerun can be matched to its tool.
-TOOL_VERSION = "3.0.0"
+TOOL_VERSION = "3.1.0"
 
 REPORT_MD = HERE / "pqc_readiness_report.md"
 CHART_PNG = HERE / "pqc_readiness_chart.png"

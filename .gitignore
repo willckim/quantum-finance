@@ -41,3 +41,6 @@ desktop.ini
 
 # --- Local reference notes (contains unrelated project context) ---
 Quantum_Project_Reference.md
+
+# --- Real vendor hostnames and their TLS results (never commit) ---
+*.local.*

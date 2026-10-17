@@ -55,12 +55,17 @@ TRACKER_TEMPLATE = HERE / "vendor_tracker_template.csv"
 SAMPLE_TRACKER = HERE / "sample_vendor_tracker.csv"
 # Line-ending-normalized SHA-256 of the shipped sample tracker: the hand-worked ratings
 # only apply to that exact content (an edited tracker gets NOT RUN, not a false FAIL).
-SHIPPED_TRACKER_FINGERPRINT = "cc9efd483719bb04436dd1776217fc35c69570008c415ef8f8cca863ad86c55c"
+SHIPPED_TRACKER_FINGERPRINT = "0ea73f49a20f8a16273da9403bc46da36748bcf36f59d76e38db94b38f900d93"
 
 YES_NO = ("yes", "no", "unknown")
 COLUMNS = ("vendor", "service", "data_types_handled", "questionnaire_sent",
            "response_received", "pqc_roadmap", "algorithms_stated", "hybrid_in_transit",
-           "pqc_target_year", "follow_up_date", "notes")
+           "hybrid_observed", "pqc_target_year", "follow_up_date", "notes")
+# hybrid_observed sits next to the vendor's answer (hybrid_in_transit) but is never typed
+# in: it is filled from handshake evidence (tls_check.py) in vendor_tracker_observed.csv.
+# Optional in an input tracker (older trackers lack it), and blank whenever present.
+OBSERVED_COLUMN = "hybrid_observed"
+REQUIRED_COLUMNS = tuple(c for c in COLUMNS if c != OBSERVED_COLUMN)
 
 
 @dataclass(frozen=True)
@@ -202,6 +207,9 @@ def _row(row: dict, n: int, cfg: Config) -> Vendor:
     roadmap, hybrid = _choice(row, "pqc_roadmap", where), _choice(row, "hybrid_in_transit", where)
     if not responded and ("yes" in (roadmap, hybrid) or target):
         raise TrackerError(f"{where}: answers are recorded but response_received is 'no'")
+    if _v(row, OBSERVED_COLUMN):
+        raise TrackerError(f"{where}: {OBSERVED_COLUMN} is filled from handshake evidence "
+                           "(tls_check.py), never typed in; leave it blank")
     return Vendor(_v(row, "vendor"), _v(row, "service"), tuple(known[s] for s in names),
                   responded, roadmap, _v(row, "algorithms_stated"), hybrid,
                   int(target) if target else None, follow_up, _v(row, "notes"))
@@ -209,7 +217,7 @@ def _row(row: dict, n: int, cfg: Config) -> Vendor:
 
 def parse_tracker(text: str, cfg: Config) -> list[Vendor]:
     reader = csv.DictReader(io.StringIO(text.lstrip("﻿")))
-    missing = [c for c in COLUMNS if c not in (reader.fieldnames or [])]
+    missing = [c for c in REQUIRED_COLUMNS if c not in (reader.fieldnames or [])]
     if missing:
         raise TrackerError(f"tracker: missing column(s) {missing}")
     vendors = [_row(row, n, cfg) for n, row in enumerate(reader, start=2)
@@ -307,6 +315,7 @@ BROKEN_ROWS = (
     ("follow-up before sent", {"a": ("2026-10-15", "2026-08-01")}),
     ("answers without a response", {"a": (",yes,yes,", ",no,yes,")}),
     ("target year not a year", {"a": (",2028,", ",2O28,")}),
+    ("observed value typed into the input", {"a": (",no,,2028,", ",no,yes,2028,")}),
 )
 
 
@@ -323,8 +332,11 @@ def _tracker_checks(cfg: Config) -> list[Check]:
         except TrackerError:
             pass
     valid = {"Excel byte-order mark": "﻿" + header + "\n" + first,
-             "blank trailing line": header + "\n" + first + "\n,,,,,,,,,,\n",
-             "short row (trailing cells dropped)": header + "\n" + first.rsplit(",", 1)[0]}
+             "blank trailing line": header + "\n" + first + "\n,,,,,,,,,,,\n",
+             "short row (trailing cells dropped)": header + "\n" + first.rsplit(",", 1)[0],
+             "older tracker without hybrid_observed": "\n".join(
+                 line.replace(",hybrid_observed,", ",").replace(",no,,2028,", ",no,2028,")
+                 for line in (header, first))}
     refused = []
     for label, text in valid.items():
         try:
@@ -338,7 +350,8 @@ def _tracker_checks(cfg: Config) -> list[Check]:
         Check("Vendor: invalid tracker rows are rejected",
               not accepted, "accepted: " + ", ".join(accepted) if accepted
               else f"{len(broken)}/{len(broken)} rejected"),
-        Check("Vendor: valid Excel-style trackers (BOM, blank line, short row) are accepted",
+        Check("Vendor: valid trackers (BOM, blank line, short row, no observed column) "
+              "are accepted",
               not refused, "; ".join(refused) if refused else f"{len(valid)}/{len(valid)}"),
     ]
 

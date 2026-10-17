@@ -1,17 +1,18 @@
 """Part 5 -- pqc_readiness_report.md: the results written up as a readiness assessment.
 
-Parts 1-4 and 6 produce evidence; this module assembles it into a document a controller
+Parts 1-4, 6 and 9 produce evidence; this module assembles it into a document a controller
 or IT auditor could hand to management. It is deliberately framed as a READINESS
 ASSESSMENT produced by an open framework, not an audit, attestation or certification:
 
   * the scope statement at the top says what was assessed, what was not, and which
     inputs are defaults;
   * the required defaults note tells a reader to replace the retention periods first;
-  * the Limitations section states what the scanner cannot see;
+  * the Limitations section states what the scanner and the TLS check cannot see;
   * every draft or unverified source is labeled as such at every citation (checked by
     run_all.py citation by citation).
 
-The findings themselves live in report_findings.py. The organization is fictional, and
+The findings themselves live in report_findings.py (Finding 6 and Appendix E in
+report_tls.py). The organization is fictional, and
 the report says so on its first line.
 """
 
@@ -29,7 +30,9 @@ from mosca import EXPOSED_NOW, SAFE, Assessment
 from report_findings import (BASE, Verified, base_scenario, cite, finding_1, label,
                              finding_2, finding_3, finding_4, finding_5, finding_ratings,
                              hybrid_cost, observation)
+from report_tls import TlsEvidence, appendix_e, claims_summary, finding_6
 from sources import SOURCES
+from vendor_observed import TITLE as TITLE_6, claims_rating
 from vendor_review import Rating
 
 DEFAULTS_NOTE = ("Default retention periods reflect general federal rules. Replace with "
@@ -72,13 +75,29 @@ LIMITATIONS_MORE = (
     "Migration priority is a planning aid computed by a stated rule, not a risk rating from "
     "a certified assessment.",
 )
+# What an outside handshake cannot show (Part 9). run_all.py checks the report and README.
+TLS_LIMITATIONS = (
+    "The TLS check only sees the public front door.",
+    "It says nothing about data at rest, internal connections or backends.",
+    "A post-quantum handshake today does not prove a vendor's whole environment is "
+    "quantum-safe.",
+)
+TLS_LIMITATIONS_DETAIL = (
+    "Many sites sit behind a CDN, so a result may reflect the CDN, not the vendor's own "
+    "systems. Each result is one handshake, from one network location, at one moment, and "
+    "certificate chain trust is not assessed.",
+    "It observes key exchange on one listed connection, nothing behind it.",
+    "It is one piece of evidence about one endpoint; the questionnaire, contracts and "
+    "independent evidence (Q12) still carry the rest.",
+)
 
 
 def limitations_markdown(heading: str = "## Limitations") -> str:
     core = "\n".join(f"* **{s}** {d}" for s, d in zip(LIMITATION_STATEMENTS,
                                                       LIMITATIONS_DETAIL))
     more = "\n".join(f"* {m}" for m in LIMITATIONS_MORE)
-    return f"\n{heading}\n\n{core}\n{more}\n"
+    tls = "\n".join(f"* **{s}** {d}" for s, d in zip(TLS_LIMITATIONS, TLS_LIMITATIONS_DETAIL))
+    return f"\n{heading}\n\n{core}\n{more}\n{tls}\n"
 
 
 # ---- front matter -----------------------------------------------------------------------
@@ -100,8 +119,8 @@ use the Condition / Criteria / Cause / Effect / Recommendation format for readab
 
 | | |
 |---|---|
-| **Assessed** | (1) {len(cfg.data_types)} finance data types against Mosca's inequality; (2) code and configuration text in `{scan.root_label}/` ({scan.files_scanned} files) for cryptographic algorithm names; (3) {tracker}: vendor questionnaire answers as recorded; (4) key exchange sizes and timings on one workstation |
-| **Not assessed** | Live network endpoints, production systems, compiled software, databases, cloud-service settings, hardware security modules, key-management procedures, vendor controls beyond their recorded answers, and whether any control operates effectively |
+| **Assessed** | (1) {len(cfg.data_types)} finance data types against Mosca's inequality; (2) code and configuration text in `{scan.root_label}/` ({scan.files_scanned} files) for cryptographic algorithm names; (3) {tracker}: vendor questionnaire answers as recorded; (4) key exchange sizes and timings on one workstation; (5) one TLS handshake to each public endpoint in `tls_hosts.yaml` (Appendix E, a demo; none is the organization's) and to any vendor endpoints supplied (Finding 6) |
+| **Not assessed** | The organization's own network endpoints, vendor endpoints not supplied for the TLS check, production systems, compiled software, databases, cloud-service settings, hardware security modules, key-management procedures, vendor controls beyond their recorded answers, and whether any control operates effectively |
 | **Default inputs** | From `{cfg.path_label}`: {defaults} of {len(cfg.data_types)} shelf lives use default rules or assumptions (not organization policy); migration time {cfg.migration_years} years {cite(*cfg.migration_sources)}; quantum-arrival planning windows {", ".join(s.label for s in cfg.scenarios)} |
 | Assessment as of | {cfg.as_of_year} |
 | Generated | {run_at} by `run_all.py` in this folder (all figures reproducible) |
@@ -109,7 +128,7 @@ use the Condition / Criteria / Cause / Effect / Recommendation format for readab
 
 
 def _executive_summary(cfg: Config, mosca: dict[str, list[Assessment]], scan: ScanResult,
-                       kem: list[KemProfile], ratings: list[Rating]) -> str:
+                       kem: list[KemProfile], ratings: list[Rating], tls: TlsEvidence) -> str:
     wire, ms = hybrid_cost(kem)
     base, base_s = mosca[BASE], base_scenario(cfg)
     exposed = sum(a.status != SAFE for a in base)
@@ -119,7 +138,8 @@ def _executive_summary(cfg: Config, mosca: dict[str, list[Assessment]], scan: Sc
     now_text = (f"{', '.join(now)} would be exposed even with an instant migration."
                 if now else "None would be exposed with an instant migration.")
     table = "\n".join(f"| {n} | {title} | {level} |" for n, (title, level)
-                      in enumerate(finding_ratings(mosca, scan, ratings), start=1))
+                      in enumerate(finding_ratings(mosca, scan, ratings)
+                                   + [(TITLE_6, claims_rating(tls.claims))], start=1))
     return f"""
 ## Executive summary
 
@@ -139,6 +159,7 @@ windows instead.
   not confirmed deployments.
 * **Vendors.** The recorded answers of {len(ratings)} vendors produce **{high} High**
   ratings under the stated rule (Finding 5); answers are claims until evidenced.
+* **Vendor claims vs handshakes.** {claims_summary(tls.claims)} (Finding 6).
 * **Cost of the fix.** On one workstation, hybrid key exchange took {wire:,} bytes and
   about {ms:.1f} ms per handshake (Appendix C), which suggests computation and bandwidth
   are unlikely to be the main barriers.
@@ -149,7 +170,8 @@ windows instead.
 
 Ratings are illustrative priorities: **High** = known weakness or exposure that migration
 speed alone cannot remove, address within 90 days; **Medium** = exposure that grows with
-delay, plan within 6 months; **Low** = improvement.
+delay, plan within 6 months; **Low** = improvement; **Not assessed** = no evidence in this
+run to rate.
 """
 
 
@@ -251,7 +273,7 @@ def _references(text: str) -> str:
 def write_report(path: Path, cfg: Config, mosca: dict[str, list[Assessment]],
                  scan: ScanResult, kem: list[KemProfile], shor: dict,
                  ratings: list[Rating], tracker: str, checks: Sequence[Check],
-                 register_part: str = "") -> str:
+                 register_part: str, tls: TlsEvidence) -> str:
     """Write the report. Sentences that assert a verified fact consult `checks` first."""
     def verified(prefix: str) -> bool:
         found = [c for c in checks if c.name.startswith(prefix)]
@@ -259,13 +281,16 @@ def write_report(path: Path, cfg: Config, mosca: dict[str, list[Assessment]],
 
     run_at = datetime.now().isoformat(timespec="seconds")
     body = "".join((
-        _header(cfg, run_at, scan, tracker), _executive_summary(cfg, mosca, scan, kem, ratings),
+        _header(cfg, run_at, scan, tracker),
+        _executive_summary(cfg, mosca, scan, kem, ratings, tls),
         finding_1(cfg, mosca), finding_2(scan), finding_3(scan, kem), finding_4(scan),
-        finding_5(cfg, ratings, tracker), observation(scan), register_part,
+        finding_5(cfg, ratings, tracker), finding_6(tls.claims, tls.source),
+        observation(scan), register_part,
         limitations_markdown(),
         "\n## Appendix A: Exposure chart\n\n![Mosca exposure timeline by data type across "
         "three planning scenarios](pqc_readiness_chart.png)\n",
-        _appendix_b(scan, verified), _appendix_c(kem, verified), _appendix_d(cfg, shor)))
+        _appendix_b(scan, verified), _appendix_c(kem, verified), _appendix_d(cfg, shor),
+        appendix_e(tls.demo, tls.delay)))
     text = body + _references(body)
     path.write_text(text, encoding="utf-8")
     return text
