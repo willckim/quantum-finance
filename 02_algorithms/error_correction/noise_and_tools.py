@@ -33,6 +33,12 @@ Z_SCORE_LIMIT = 4.0     # |simulated - exact| must sit within 4 standard errors.
                         # single-error tables cover the low-p behaviour.
 OUTPUT_PNG = Path(__file__).resolve().with_name("error_correction_threshold.png")
 
+# Part 7 (biased noise). Change these to rerun the comparison at other settings.
+BIAS_RATIOS = (1, 10, 100, 1000)   # eta = P(Z) / P(X), ascending from 1; circuits run at each
+P_BIAS = 0.05                      # total physical error rate held fixed while eta varies
+REP_LENGTHS = (3, 5, 7)            # phase-flip repetition codes: odd, 3 to 9 (exact enumeration)
+BIAS_PNG = Path(__file__).resolve().with_name("biased_noise.png")
+
 # Aer's stabilizer method: exact for Clifford circuits, polynomial cost (Gottesman-Knill).
 STABILIZER_SIM = AerSimulator(method="stabilizer")
 # Statevector method: needed only when a demo uses non-Clifford rotations (arbitrary states).
@@ -90,6 +96,27 @@ def phase_flip_channel(p: float):
 def depolarizing_channel(p: float):
     """X, Y or Z each with probability p/3: the least-structured single-qubit noise."""
     return pauli_error([("X", p / 3), ("Y", p / 3), ("Z", p / 3), ("I", 1.0 - p)])
+
+
+# BIASED NOISE (Part 7). The total error probability stays p; the bias ratio eta decides
+# how it splits. eta = P(Z) / P(X), with P(Y) = P(X) because Y = iXZ also flips the bit:
+#     P(X) = P(Y) = p / (eta + 2),   P(Z) = p * eta / (eta + 2)
+# eta = 1 is exactly the depolarizing channel above (p/3 each); eta = 1000 means a phase
+# flip is 1000 times as likely as a bit flip. GOTCHA when reading papers: Tuckett et al.
+# (PRL 2018) define eta = P(Z) / (P(X) + P(Y)), which is HALF of this script's eta, so
+# their "depolarizing" is eta = 0.5 and their eta = 500 is this script's 1000.
+def bias_split(p: float, eta: float) -> tuple[float, float, float]:
+    """(P(X), P(Y), P(Z)) for total error rate p and bias ratio eta = P(Z) / P(X)."""
+    if eta <= 0 or not 0 <= p <= 1:
+        raise ValueError(f"need eta > 0 and 0 <= p <= 1, got eta={eta}, p={p}")
+    bit = p / (eta + 2)
+    return bit, bit, p - 2 * bit
+
+
+def biased_channel(p: float, eta: float):
+    """Aer Pauli channel: X, Y, Z with the probabilities bias_split gives, total p."""
+    p_x, p_y, p_z = bias_split(p, eta)
+    return pauli_error([("X", p_x), ("Y", p_y), ("Z", p_z), ("I", 1.0 - p)])
 
 
 def inject_noise(qc: QuantumCircuit, qubits: Iterable[Qubit | int], channel) -> None:

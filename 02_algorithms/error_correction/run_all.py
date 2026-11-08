@@ -2,8 +2,9 @@
 
 WHAT THIS PROJECT BUILDS, AND WHERE EACH PART LIVES
 ---------------------------------------------------
-Six stages. Each one fixes the weakness the stage before it exposed. Read the modules in this
-order; run_all.py (this file) runs them all and prints the self-verification report.
+Six stages, then one extension. Each stage fixes the weakness the one before it exposed. Read
+the modules in this order; run_all.py (this file) runs them all and prints the self-verification
+report.
 
     Part 1  bare_qubit.py        One bare qubit under bit-flip noise is wrong with probability p.
     Part 2  repetition_code.py   Spread one qubit across three. Parity checks find a bit flip
@@ -14,6 +15,9 @@ order; run_all.py (this file) runs them all and prints the self-verification rep
     Part 5  surface_code.py      Distance-3 rotated surface code: 9 data qubits on a grid,
                                  8 local stabilizer checks, syndromes drawn on the lattice.
     Part 6  threshold_sweep.py   error_correction_threshold.png: logical vs physical error rate.
+    Part 7  biased_noise.py      Biased noise (phase flips >> bit flips): a phase-flip repetition
+            bias_chart.py        code overtakes the surface code with far fewer qubits. The idea
+                                 behind cat qubits. biased_noise.png: error rate vs bias ratio.
 
     Shared  noise_and_tools.py   Settings, simulators, noise channels, result-reading helpers.
             pauli_frame.py       Exact classical reference model, lookup decoder, fast sampler.
@@ -66,6 +70,11 @@ about 13% (code capacity, as measured here) to roughly 1%. The numbers printed h
 therefore upper bounds on what these codes achieve in practice, and the script says so
 where it prints them.
 
+Part 7 keeps the same code-capacity model and changes only HOW the error probability p splits:
+bias ratio eta = P(Z) / P(X) with P(Y) = P(X), total p fixed at 5% (eta = 1 is depolarizing).
+Its numbers also assume bias-preserving gates, which ordinary qubits cannot provide; see the
+comment block at the top of biased_noise.py.
+
 WHAT IS HAND-BUILT, WHAT IS SIMPLIFIED, AND WHAT WAS SUBSTITUTED
 ----------------------------------------------------------------
 * qiskit-qec, stim and pymatching are NOT installed (checked for Qiskit 2.3.1 / Aer 0.17.2).
@@ -90,7 +99,7 @@ per second here (the statevector method is about 70x slower on the same circuit)
 exceptions, arbitrary input states in Parts 2-3 and one non-Clifford rotation in Part 4,
 are small enough to run on the statevector method instead.
 
-Run:  py run_all.py      (writes error_correction_threshold.png next to it)
+Run:  py run_all.py      (writes error_correction_threshold.png and biased_noise.png next to it)
 """
 
 from __future__ import annotations
@@ -104,7 +113,9 @@ import qiskit
 import qiskit_aer
 
 from bare_qubit import part1_bare_qubit
-from noise_and_tools import SEED, Check, percent, section
+from bias_chart import part7_chart
+from biased_noise import BiasResults, part7_biased_noise, rep_key
+from noise_and_tools import BIAS_RATIOS, P_BIAS, REP_LENGTHS, SEED, Check, percent, section
 from pauli_frame import break_even_point, build_decoder, exact_logical_error_curve
 from phase_flip_code import PHASE_CODE, part3_phase_flips
 from repetition_code import part2_bit_flip_code
@@ -117,7 +128,8 @@ from threshold_sweep import ThresholdAnalysis, part6_threshold_chart
 # SUMMARY AND SELF-VERIFICATION
 # ======================================================================================
 
-def print_summary(analysis: ThresholdAnalysis, phase_break_even: float | None) -> None:
+def print_summary(analysis: ThresholdAnalysis, phase_break_even: float | None,
+                  bias: BiasResults) -> None:
     section("SUMMARY")
     be = analysis.break_even
     rows = (
@@ -142,6 +154,14 @@ def print_summary(analysis: ThresholdAnalysis, phase_break_even: float | None) -
           f"~{percent(analysis.threshold, 1, 'not found')} code capacity;")
     print("  about 1% under realistic circuit-level noise. One noiseless reference qubit is added")
     print("  for scoring in Parts 4-5 and is not part of any code.")
+    hi, best = BIAS_RATIOS[-1], rep_key(REP_LENGTHS[-1])
+    print(f"\n  Biased noise (Part 7), code-capacity, p = {P_BIAS:.0%}, bias ratio {hi:g}:")
+    print(f"  phase-flip repetition n={REP_LENGTHS[-1]} ({bias.qubits[best]} qubits) fails "
+          f"{percent(bias.exact[best](hi), 3)}; surface d=5 ({bias.qubits['surface5']} qubits) "
+          "fails "
+          f"{percent(bias.surface5[-1], 3)}.")
+    print(f"  Without bias the same repetition code fails "
+          f"{percent(bias.exact[best](BIAS_RATIOS[0]), 1)}, worse than a bare qubit.")
 
 
 def print_verification(checks: Sequence[Check]) -> bool:
@@ -180,8 +200,10 @@ def main() -> int:
     sweeps = {"rep3_bit_flip": rep3_sweep, "shor": shor_sweep, "surface3": surface_sweep}
     analysis, more = part6_threshold_chart(curves, sweeps, d5_rates)
     checks += more
+    bias, more = part7_biased_noise()
+    checks += more + part7_chart(bias)
     phase_curve = exact_logical_error_curve(PHASE_CODE, build_decoder(PHASE_CODE), "phase_flip")
-    print_summary(analysis, break_even_point(phase_curve))
+    print_summary(analysis, break_even_point(phase_curve), bias)
     return 0 if print_verification(checks) else 1
 
 

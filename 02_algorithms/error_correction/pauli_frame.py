@@ -13,7 +13,7 @@ from typing import Callable, Iterable, Sequence
 import numpy as np
 from scipy.optimize import brentq
 
-from noise_and_tools import Check
+from noise_and_tools import Check, bias_split
 
 
 # ======================================================================================
@@ -248,6 +248,41 @@ def exact_logical_error_curve(code: CssCode, decoder: LookupDecoder,
         return float(sum(counts[w] * q ** w * (1.0 - p) ** (n - w) for w in range(n + 1)))
 
     return curve
+
+
+def exact_biased_curve(code: CssCode, decoder: LookupDecoder) -> Callable[[float, float], float]:
+    """Exact logical error rate under biased noise, as a function of (p, eta).
+
+    Same enumeration as above, but a pattern's probability now depends on WHICH Paulis it
+    holds, not just how many: with a X's, b Y's and c Z's it is
+    P(X)^a P(Y)^b P(Z)^c (1-p)^(n-a-b-c). So failures are counted per (a, b, c) instead of
+    per weight. 4^n patterns: fine up to n = 9 (the d=3 surface code); d=5 is sampled.
+    """
+    n = code.n
+    bits = ((np.arange(1 << n)[:, None] >> np.arange(n)) & 1).astype(np.uint8)
+    i, j = np.meshgrid(np.arange(1 << n), np.arange(1 << n), indexing="ij")
+    ex, ez = bits[i.ravel()], bits[j.ravel()]
+    failed = logical_failures(code, decoder, ex, ez)
+    kinds = np.stack([(ex & (1 - ez)).sum(axis=1), (ex & ez).sum(axis=1),
+                      ((1 - ex) & ez).sum(axis=1)], axis=1)[failed]
+    patterns, counts = np.unique(kinds, axis=0, return_counts=True)
+
+    def curve(p: float, eta: float) -> float:
+        p_x, p_y, p_z = bias_split(p, eta)
+        return float(sum(k * p_x ** a * p_y ** b * p_z ** c * (1.0 - p) ** (n - a - b - c)
+                         for (a, b, c), k in zip(patterns.tolist(), counts.tolist())))
+
+    return curve
+
+
+def sampled_biased_error_rate(code: CssCode, decoder: LookupDecoder, p: float, eta: float,
+                              samples: int, rng: np.random.Generator) -> float:
+    """Monte Carlo version of exact_biased_curve, for the d=5 surface code."""
+    p_x, p_y, _ = bias_split(p, eta)
+    u = rng.random((samples, code.n))
+    ex = (u < p_x + p_y).astype(np.uint8)                 # X (u < p_x) or Y (next p_y)
+    ez = ((u >= p_x) & (u < p)).astype(np.uint8)          # Y or Z (the rest of p)
+    return float(logical_failures(code, decoder, ex, ez).mean())
 
 
 def sampled_logical_error_rate(code: CssCode, decoder: LookupDecoder, p: float,

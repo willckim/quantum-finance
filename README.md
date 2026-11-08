@@ -28,7 +28,7 @@ I am an accountant on the CPA path. In 2026 I started learning quantum computing
 - **`grover_search.py`**: Grover's search algorithm, which finds a marked item in an unsorted space in roughly the square root of the classical number of steps.
 #### Quantum error correction: `02_algorithms/error_correction/`
 
-**What it demonstrates.** How a quantum computer can protect fragile qubits without ever copying them or looking at the information they hold. The project builds error correction up in six stages, from one noisy qubit to the surface code the industry is scaling today. Every encoder, syndrome measurement and decoder is hand-built in Qiskit, and every simulated result is checked against exact math (58 self-checks, printed at the end of each run).
+**What it demonstrates.** How a quantum computer can protect fragile qubits without ever copying them or looking at the information they hold. The project builds error correction up in six stages, from one noisy qubit to the surface code the industry is scaling today, then a seventh on biased noise, the idea behind cat qubits. Every encoder, syndrome measurement and decoder is hand-built in Qiskit, and every simulated result is checked against exact math (99 self-checks, printed at the end of each run).
 
 **Start here.** Open [`run_all.py`](02_algorithms/error_correction/run_all.py) first. Its opening comment explains the five ideas the project is about (no-cloning, physical vs logical qubits, syndrome measurement, threshold, overhead) and lists the modules in reading order. Then read the parts in order:
 
@@ -40,6 +40,7 @@ I am an accountant on the CPA path. In 2026 I started learning quantum computing
 | 4 | `shor_code.py` | Shor's 9-qubit code corrects X, Y and Z errors on any qubit, including a continuous rotation. |
 | 5 | `surface_code.py` | A distance-3 rotated surface code, with its syndromes drawn on the 2D lattice. |
 | 6 | `threshold_sweep.py` | The threshold chart and the physical-qubit overhead arithmetic. |
+| 7 | `biased_noise.py`, `bias_chart.py` | Biased noise: when phase flips far outnumber bit flips, a phase-flip repetition code beats the surface code with far fewer qubits. The idea behind cat qubits (Alice & Bob, AWS Ocelot). |
 | shared | `noise_and_tools.py`, `pauli_frame.py` | Settings, noise channels and helpers, plus the exact classical model the circuits are graded against. |
 
 **What the threshold chart shows.** [`error_correction_threshold.png`](02_algorithms/error_correction/error_correction_threshold.png) plots logical error rate against physical error rate p. Panel A asks whether one encoded qubit beats a bare one: a code helps wherever its curve sits below the diagonal, and the crossing is that code's break-even point. Panel B asks whether a *bigger* code helps: below the point where the distance-3 and distance-5 surface-code curves cross, the larger code is more reliable. That crossing is the threshold, and operating below it is what lets error correction scale.
@@ -55,6 +56,20 @@ I am an accountant on the CPA path. In 2026 I started learning quantum computing
 | Surface code threshold | About 13.3% (d=3 vs d=5 crossing) | About 1% (Wang, Fowler & Hollenberg 2011; Fowler et al. 2012) |
 
 The 13.3% figure is a property of the idealized model, not a claim about real devices. The hardware-relevant surface-code threshold is about 1%.
+
+**Biased noise (Part 7).** Some hardware makes one kind of error far more often than the other. Cat qubits store 0 and 1 as two opposite states of a microwave field, so a bit flip has to drag the whole field across and becomes exponentially rare, while phase flips stay common. Part 7 keeps the total error rate fixed at p = 5% per data qubit and varies the bias ratio, P(phase flip) / P(bit flip), from 1 (depolarizing noise) to 1000. [`biased_noise.png`](02_algorithms/error_correction/biased_noise.png) plots each code's logical error rate against that ratio.
+
+![Logical error rate vs bias ratio for phase-flip repetition codes and the surface code](02_algorithms/error_correction/biased_noise.png)
+
+| Code (physical qubits) | Bias 1 (depolarizing) | Bias 1000 |
+|------------------------|-----------------------|-----------|
+| Unencoded qubit (1) | 5.0% | 5.0% |
+| Phase-flip repetition n=3 (5) | 9.5% | 0.75% |
+| Phase-flip repetition n=7 (13) | 19.2% | 0.089% |
+| Surface code d=3 (17) | 3.4% | 3.7% |
+| Surface code d=5 (49), sampled | 1.6% | 2.4% |
+
+All of these are code-capacity numbers (perfect checks), like the threshold table above. With no bias the repetition codes are worse than no code at all. Past a bias of about 9, the 5-qubit code beats the 17-qubit surface code. At a bias of 1000, the 13-qubit code fails about 27 times less often than the 49-qubit surface code. The standard surface code gains nothing from bias, because it spends half its qubits guarding against an error that no longer happens. There is a catch the simulation does not model: the bias has to survive the CNOT gates that do the checking. On ordinary qubits it does not, and cat qubits are built so that it does. `bias_mutation_tests.py` shows that each Part 7 self-check fails when the code it guards is deliberately broken.
 
 ### `03_finance/`
 
@@ -116,7 +131,7 @@ pip install -r requirements.txt
 python 01_basics/coin_flip.py
 python 03_finance/quantum_monte_carlo.py
 
-# 3. Run the whole error-correction walkthrough (about 35 seconds)
+# 3. Run the whole error-correction walkthrough (about 65 seconds)
 python 02_algorithms/error_correction/run_all.py
 
 # 4. Run the PQC readiness toolkit (about 20 seconds; writes the report, chart, questionnaire and run log)
@@ -127,7 +142,7 @@ cd 04_security/pqc_readiness && python run_all.py
 python tls_check.py
 ```
 
-The finance scripts that generate charts write their `.png` next to themselves in `03_finance/`, and `run_all.py` writes `error_correction_threshold.png` next to itself. All of them use a non-interactive matplotlib backend, so they save the file without opening a window.
+The finance scripts that generate charts write their `.png` next to themselves in `03_finance/`, and the error-correction `run_all.py` writes `error_correction_threshold.png` and `biased_noise.png` next to itself. All of them use a non-interactive matplotlib backend, so they save the file without opening a window.
 
 Note: `quantum_forecaster.py` additionally requires `scikit-learn` and `qiskit-machine-learning` (included in `requirements.txt`). It was developed under an earlier Python/Qiskit environment; the other scripts run on the environment below as-is.
 
