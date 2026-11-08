@@ -1,0 +1,136 @@
+{
+  "run_timestamp": "2026-11-08T12:15:55",
+  "automation": "fraud-detection-classical-vs-quantum",
+  "version": "1.0.0",
+  "source": {
+    "file": "creditcard.arff",
+    "md5": "178bcf9bb1f31a3dfe12d0e577884add",
+    "records_read": 284807,
+    "frauds": 492,
+    "url_note": "OpenML dataset 1597"
+  },
+  "processing": {
+    "costs": {
+      "miss": 300.0,
+      "review": 20.0
+    },
+    "models": [
+      {
+        "model": "Logistic regression",
+        "regime": "full",
+        "params": {
+          "C": 0.0001
+        },
+        "configs_tried": 7,
+        "threshold_from_validation": -6.235714176596504,
+        "test_pr_auc": 0.7437,
+        "test_cost": 8180.0
+      },
+      {
+        "model": "Gradient boosting",
+        "regime": "full",
+        "params": {
+          "learning_rate": 0.05,
+          "max_leaf_nodes": 31
+        },
+        "configs_tried": 4,
+        "threshold_from_validation": 0.013461861365944572,
+        "test_pr_auc": 0.8264,
+        "test_cost": 7420.0
+      },
+      {
+        "model": "Logistic regression",
+        "regime": "subsample",
+        "params": {
+          "C": 100.0
+        },
+        "configs_tried": 7,
+        "threshold_from_validation": 3.349652990037659,
+        "test_pr_auc": 0.7078,
+        "test_cost": 9060.0
+      },
+      {
+        "model": "Gradient boosting",
+        "regime": "subsample",
+        "params": {
+          "max_depth": 3,
+          "learning_rate": 0.05,
+          "l2_regularization": 0.0
+        },
+        "configs_tried": 8,
+        "threshold_from_validation": 0.9906270651931988,
+        "test_pr_auc": 0.7243,
+        "test_cost": 9320.0
+      },
+      {
+        "model": "RBF SVM",
+        "regime": "subsample",
+        "params": {
+          "gamma": 0.0001,
+          "C": 1000.0
+        },
+        "configs_tried": 36,
+        "threshold_from_validation": 0.07810235914107366,
+        "test_pr_auc": 0.7272,
+        "test_cost": 8740.0
+      },
+      {
+        "model": "Quantum kernel SVM",
+        "regime": "subsample",
+        "params": {
+          "reps": 1,
+          "bandwidth": 0.002,
+          "C": 1000.0
+        },
+        "configs_tried": 36,
+        "threshold_from_validation": 0.1875148043662067,
+        "test_pr_auc": 0.7274,
+        "test_cost": 8680.0
+      }
+    ],
+    "subsample_stability_pr_auc": {
+      "Logistic regression": [
+        0.7078,
+        0.6945,
+        0.684,
+        0.7205,
+        0.7141
+      ],
+      "Gradient boosting": [
+        0.7243,
+        0.7046,
+        0.6343,
+        0.6779,
+        0.6318
+      ],
+      "RBF SVM": [
+        0.7272,
+        0.7143,
+        0.7129,
+        0.7121,
+        0.7164
+      ],
+      "Quantum kernel SVM": [
+        0.7274,
+        0.696,
+        0.6672,
+        0.7235,
+        0.698
+      ]
+    }
+  },
+  "output": {
+    "files": [
+      "fraud_pr_curves.png",
+      "fraud_report.md",
+      "fraud_summary.csv",
+      "fraud_run_log.json"
+    ]
+  },
+  "checks": {
+    "passed": 24,
+    "failed": [],
+    "not_run": []
+  },
+  "exceptions": []
+}

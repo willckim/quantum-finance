@@ -4,7 +4,7 @@ Learning quantum computing from zero and pointing it at real finance problems, o
 
 ## The story
 
-I am an accountant on the CPA path. In 2026 I started learning quantum computing from scratch, with no physics background, to understand where it might actually matter for finance. This repo is the public record of that climb: it begins with the smallest possible quantum programs (a single coin flip on one qubit) and works up to three finance applications that compare a quantum approach against the classical method a real analyst would use today. Every script is heavily commented in plain language, because the comments are how I teach the concept to myself.
+I am an accountant on the CPA path. In 2026 I started learning quantum computing from scratch, with no physics background, to understand where it might actually matter for finance. This repo is the public record of that climb: it begins with the smallest possible quantum programs (a single coin flip on one qubit) and works up to four finance applications that compare a quantum approach against the classical method a real analyst would use today. Every script is heavily commented in plain language, because the comments are how I teach the concept to myself.
 
 ## What's inside
 
@@ -12,7 +12,7 @@ I am an accountant on the CPA path. In 2026 I started learning quantum computing
 |--------|----------------|
 | `01_basics/` | Foundational quantum programs: superposition, entanglement, teleportation, and the Bernstein-Vazirani algorithm. The "hello world" layer. |
 | `02_algorithms/` | Core quantum algorithms implemented from the gates up: Grover search and quantum error correction. |
-| `03_finance/` | Three quantum-vs-classical finance applications, each producing a printed comparison and a chart. |
+| `03_finance/` | Four quantum-vs-classical finance applications, each producing a printed comparison and a chart. |
 | `04_security/` | Post-quantum cryptography readiness: why quantum computers could break today's encryption, which finance data may already be at risk, what the code and vendors use, and an assessment-style report on what to migrate. |
 
 ### `01_basics/`
@@ -77,6 +77,29 @@ All of these are code-capacity numbers (perfect checks), like the threshold tabl
 - **`portfolio_optimizer.py`**: Selects an optimal subset of assets by encoding the choice as a QUBO/Ising problem and solving it with a hand-built QAOA circuit, then checks the quantum result against a brute-force classical optimum. It shows how a combinatorial finance decision maps onto a quantum optimizer.
 - **`quantum_monte_carlo.py`**: Estimates the probability that a small business runs low on cash during the year, comparing 10,000-path classical Monte Carlo against quantum amplitude estimation (maximum-likelihood, hand-built Grover operator). It makes the quadratic sampling speedup visible: quantum error falls like 1/M versus the classical 1/sqrt(N). Output: `risk_convergence.png`.
 
+#### Fraud detection, classical vs quantum: `03_finance/fraud_detection/`
+
+**What it demonstrates.** Whether a quantum kernel can spot card fraud better than the classical models a bank would use. It was prompted by the UK Financial Conduct Authority's Quantum Experimentation Group, announced on 5 November 2026, whose first use case is quantum machine learning for fraud and anti-money-laundering detection, compared against classical techniques. The data is the public ULB/Worldline credit card fraud dataset: 284,807 transactions, 492 of them fraud (0.17%).
+
+**Two comparisons.** A quantum kernel needs one circuit per *pair* of transactions, so it can only train on a few hundred rows. The *fair comparison* gives logistic regression, gradient boosting, a classical RBF SVM and the quantum kernel SVM the same 400-row balanced subsample and the same 6 features (one per qubit). The quantum kernel and its closest classical twin, the RBF SVM, get the same tuning budget (36 settings each). The *full-data* comparison shows what the classical models reach with all 170,884 training rows. Every model is scored once on the same 56,962-transaction test set.
+
+**Metrics.** Accuracy is not used to rank: approving every transaction scores 99.83% accuracy and catches nothing. The report uses PR-AUC, recall at a 0.1% false-positive rate, confusion matrices, and a cost view (configurable cost of a missed fraud vs an analyst review).
+
+| Model | Training data | PR-AUC | Frauds caught (of 99) | False alarms | Test cost |
+|-------|---------------|--------|-----------------------|--------------|-----------|
+| Gradient boosting | full | 0.826 | 81 | 20 | 7,420 |
+| Logistic regression | full | 0.744 | 80 | 44 | 8,180 |
+| Quantum kernel SVM | 400-row subsample | 0.727 | 77 | 27 | 8,680 |
+| RBF SVM | 400-row subsample | 0.727 | 77 | 30 | 8,740 |
+| Gradient boosting | 400-row subsample | 0.724 | 74 | 17 | 9,320 |
+| Logistic regression | 400-row subsample | 0.708 | 76 | 32 | 9,060 |
+
+Costs assume 300 per missed fraud and 20 per review (illustrative). **Who won:** gradient boosting on the full data, by every measure. In the fair comparison the quantum kernel ties the RBF SVM on this subsample, and all four models sit within noise of each other (95% bootstrap interval for the quantum kernel vs the validation-chosen classical model: −0.049 to +0.055). Across five overlapping subsample draws it ranks third of four on average. Its best setting was its most classical one. Real hardware would also have to estimate every kernel entry from repeated measurements: with 1,024 shots per entry, simulated shot noise cuts its PR-AUC from 0.727 to about 0.47, and it takes about 262,144 shots per entry to get back to about 0.71 (gate errors not included). [`fraud_report.md`](03_finance/fraud_detection/fraud_report.md) explains the results in plain language for audit and compliance readers, including what the FCA is testing.
+
+![Precision-recall curves, fair comparison and full data](03_finance/fraud_detection/fraud_pr_curves.png)
+
+The raw data is not committed. `py download_data.py` fetches it from OpenML and checks its published MD5. The dataset is under the ODbL (database) and DbCL (contents); the chart and tables carry the required notice. `run_all.py` prints 24 self-checks. When the data file is missing, the checks that need it report NOT RUN, never PASS. `fraud_mutation_tests.py` shows that the key checks fail when the code they guard is deliberately broken.
+
 ### `04_security/`
 
 #### Post-quantum cryptography readiness: `04_security/pqc_readiness/`
@@ -134,11 +157,15 @@ python 03_finance/quantum_monte_carlo.py
 # 3. Run the whole error-correction walkthrough (about 65 seconds)
 python 02_algorithms/error_correction/run_all.py
 
-# 4. Run the PQC readiness toolkit (about 20 seconds; writes the report, chart, questionnaire and run log)
+# 4. Fraud detection, classical vs quantum kernel (downloads the 150 MB dataset once,
+#    then about 2-3 minutes; costs are configurable with --miss-cost and --review-cost)
+(cd 03_finance/fraud_detection && python download_data.py && python run_all.py)
+
+# 5. Run the PQC readiness toolkit (about 20 seconds; writes the report, chart, questionnaire and run log)
 cd 04_security/pqc_readiness && python run_all.py
 
-# 5. Optional, and the only step that touches the network: one TLS handshake per host in
-#    tls_hosts.yaml (needs OpenSSL 3.5+), then rerun step 4 to report it
+# 6. Optional: one TLS handshake per host in
+#    tls_hosts.yaml (needs OpenSSL 3.5+), then rerun step 5 to report it
 python tls_check.py
 ```
 
@@ -156,6 +183,7 @@ Note: `quantum_forecaster.py` additionally requires `scikit-learn` and `qiskit-m
 | NumPy | 2.4.4 |
 | SciPy | 1.17.1 |
 | Matplotlib | 3.10.9 |
+| scikit-learn | 1.9.1 (installed for `03_finance/fraud_detection`; a dry run first confirmed it changed no installed package) |
 
 All quantum circuits run on local simulators (Qiskit Aer and statevector). No quantum hardware or cloud account is required.
 

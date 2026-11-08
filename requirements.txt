@@ -17,8 +17,12 @@ numpy==2.4.4
 scipy==1.17.1
 matplotlib==3.10.9
 
+# Machine learning baselines. 03_finance/fraud_detection was verified on 1.9.1
+# (its quantum kernel is built directly on qiskit, so it does not need
+# qiskit-machine-learning).
+scikit-learn>=1.9.1
+
 # Required only by 03_finance/quantum_forecaster.py (variational quantum regression).
 # Left unpinned: this script was developed under an earlier environment and its
 # exact pins are not re-verified on Python 3.14. Install the latest compatible build.
-scikit-learn
 qiskit-machine-learning
